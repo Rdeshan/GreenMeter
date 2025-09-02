@@ -1,30 +1,39 @@
-import { Stack } from "expo-router";
-import '../global.css';
-export default function RootLayout() {
-<<<<<<< Updated upstream
-  return <Stack screenOptions={{ headerShown: false }} />;
-=======
+import { Stack } from 'expo-router';
+import { useColorScheme } from 'react-native';
+import { ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme } from '@react-navigation/native';
+import { useFonts } from 'expo-font';
+import { StatusBar } from 'expo-status-bar';
+import { AuthProvider, useAuth } from '../providers/AuthProvider';
+
+function RootLayoutNav() {
+  const { isLoading, user } = useAuth();
   const colorScheme = useColorScheme();
-  const user = useAuthStore((state) => state.user);
 
   const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    SpaceMono: require('../assets/SpaceMono-Regular.ttf'),
   });
 
-  if (!loaded) return null;
+  if (!loaded || isLoading) return null;
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
+      <Stack screenOptions={{ headerShown: false }}>
         {!user ? (
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        ) : (
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        ) : (
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         )}
-        <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
   );
->>>>>>> Stashed changes
+}
+
+export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <RootLayoutNav />
+    </AuthProvider>
+  );
 }
