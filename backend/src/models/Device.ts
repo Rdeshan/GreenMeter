@@ -5,6 +5,7 @@ export interface IDevice extends Document {
   type?: string;
   location?: string;
   consumption?: number;
+  state:"ON"|"OFF";
   createdAt: Date;
 }
 
@@ -13,6 +14,7 @@ const DeviceSchema = new Schema<IDevice>({
   type: { type: String },
   location: { type: String },
   consumption: { type: Number },
+    state: { type: String, enum: ["ON", "OFF"], default: "OFF" }, 
   createdAt: { type: Date, default: Date.now },
 });
 
