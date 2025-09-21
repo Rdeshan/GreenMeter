@@ -9,12 +9,16 @@ import healthRoutes from './routes/energyCost.routes';
 import deviceRoutes from './routes/device_route';
 import goalRoutes from './routes/goal.routes';
 
+import aiModelRoute from './routes/aiModel.routes';
 const app = express();
 
 // Middleware
 app.use(cors({ origin: '*' }));
+app.use(cors());
 app.use(helmet());
 app.use(express.json());
+app.use('/api/costs', energyCostRoutes);
+app.use('/api/ai', aiModelRoute);
 
 // Routes
 app.use('/auth', authRoutes);
