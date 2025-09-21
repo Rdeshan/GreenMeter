@@ -23,6 +23,9 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         {!user ? (
+      <Stack screenOptions={{ headerShown: false }}>
+        {user ? (
+          // tabs layout for logged-in users
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         ) : (
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />

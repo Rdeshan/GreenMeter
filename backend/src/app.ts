@@ -2,8 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import authRoutes from './routes/auth.routes';
-import deviceRoutes from './routes/device_route';  
-import goalRoutes from './routes/goal.routes'; 
+import deviceRoutes from './routes/device_route';
+import energyCostRoutes from './routes/energyCost.routes';
+import healthRoutes from './routes/energyCost.routes';
+
+import deviceRoutes from './routes/device_route';
+import goalRoutes from './routes/goal.routes';
 
 const app = express();
 
@@ -15,5 +19,9 @@ app.use(express.json());
 // Routes
 app.use('/auth', authRoutes);
 app.use('/api', deviceRoutes);
+app.use('/api/health', healthRoutes);
+app.use('/api/costs', energyCostRoutes);
+
+
 app.use('/api/goals', goalRoutes);
 export default app;
