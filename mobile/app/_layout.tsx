@@ -9,7 +9,9 @@ import { useAuthStore } from '@/store/authStore';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const user = useAuthStore((state) => state.user);
+  //const user = useAuthStore((state) => state.user);
+  const user = { id: 1, name: "Dev User" }; // fake user, remove this line before pushing and comment out above line
+
 
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
@@ -20,7 +22,10 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
+        {!user ? (
+      <Stack screenOptions={{ headerShown: false }}>
         {user ? (
+          // tabs layout for logged-in users
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         ) : (
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
