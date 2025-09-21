@@ -4,7 +4,7 @@ import {saveDevice,
     getOneDevice,
     updateDevicePartially,
     upDateDevice,
-    deleteDevice} from "../controllers/device_controller";
+    deleteDevice} from "../controllers/device.controller";
 
 const router = Router();
 

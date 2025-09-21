@@ -1,6 +1,6 @@
 // src/controllers/goal.controller.ts
 import { Request, Response } from 'express';
-import Goal, { IGoal } from '../models/Goal.model';
+import Goal, { IGoal } from '../models/goal.model';
 
 const DUMMY_USER_ID = '64f0a1b2c3d4e5f678901234'; // any valid ObjectId string
 

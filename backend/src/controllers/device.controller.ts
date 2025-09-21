@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import Device from '../models/Device';
+import Device from '../models/device.model';
 import mongoose from 'mongoose';
 
 export const saveDevice = async (req: Request, res: Response) => {
