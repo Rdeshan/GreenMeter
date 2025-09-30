@@ -13,3 +13,12 @@ export default function Login() {
     </View>
   );
 }
+<<<<<<< Updated upstream
+=======
+
+const styles = StyleSheet.create({
+  container: { flex: 1, justifyContent: 'center', padding: 20 },
+  input: { borderWidth: 1, padding: 10, marginVertical: 5 }
+})
+
+>>>>>>> Stashed changes

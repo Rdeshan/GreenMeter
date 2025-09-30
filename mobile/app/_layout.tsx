@@ -19,7 +19,15 @@ function RootLayoutNav() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
+<<<<<<< Updated upstream
         {!user ? (
+=======
+        {user ? (
+          // tabs layout for logged-in users
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        ) : (
+          // auth layout for not-logged-in users
+>>>>>>> Stashed changes
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         ) : (
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

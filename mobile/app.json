@@ -27,13 +27,45 @@
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
+<<<<<<< Updated upstream
       "supportsTablet": true
+=======
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nirmalperera.mobile"
+>>>>>>> Stashed changes
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
+<<<<<<< Updated upstream
       }
+=======
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.nirmalperera.mobile"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+>>>>>>> Stashed changes
     }
   }
 }
