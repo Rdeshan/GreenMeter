@@ -1,46 +1,21 @@
 {
   "expo": {
-    "name": "GreenMeter",
-    "slug": "GreenMeter",
+    "name": "mobile",
+    "slug": "mobile",
     "version": "1.0.0",
-
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
-
-    "experiments": {
-      "tsconfigPaths": true,
-      "typedRoutes": true
-    },
-
-    "plugins": ["expo-router"],
-
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-
-    "userInterfaceStyle": "light",
-
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "assetBundlePatterns": ["**/*"],
+    "icon": "./assets/images/icon.png",
+    "scheme": "mobile",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
     "ios": {
-<<<<<<< Updated upstream
-      "supportsTablet": true
-=======
       "supportsTablet": true,
       "bundleIdentifier": "com.nirmalperera.mobile"
->>>>>>> Stashed changes
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-<<<<<<< Updated upstream
-      }
-=======
       },
       "edgeToEdgeEnabled": true,
       "package": "com.nirmalperera.mobile"
@@ -65,7 +40,6 @@
     ],
     "experiments": {
       "typedRoutes": true
->>>>>>> Stashed changes
     }
   }
 }

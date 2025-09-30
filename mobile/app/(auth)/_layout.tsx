@@ -4,9 +4,6 @@ import { Redirect } from "expo-router";
 const DEV_MODE = true; // toggle this when needed
 
 export default function AuthLayout() {
-<<<<<<< Updated upstream
-  return <Stack screenOptions={{ headerShown: false }} />;
-=======
   if (DEV_MODE) {
     return <Redirect href="/explore" />;
   }
@@ -17,5 +14,4 @@ export default function AuthLayout() {
       <Stack.Screen name="register" />
     </Stack>
   );
->>>>>>> Stashed changes
 }
