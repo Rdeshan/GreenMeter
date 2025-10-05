@@ -5,9 +5,9 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
 interface ConsumptionRecord {
-    id: number;
-    deviceId: number;
-    deviceName: string;
+    id: string;
+    deviceId: string;
+    device_name: string;
     hours: number;
     minutes: number;
     energyConsumed: number;
@@ -15,9 +15,8 @@ interface ConsumptionRecord {
 }
 
 interface Device {
-    id: number;
-    name: string;
-    description: string;
+    id: string;
+    device_name: string;
     location: string;
     powerUsage: number;
 }
@@ -35,7 +34,7 @@ export default function StatsContainer({ consumptionRecords, devices }: StatsCon
 
     const calculateCost = (): string => {
         const totalKwh = parseFloat(calculateTotalConsumption());
-        const costPerKwh = 30; // Example rate
+        const costPerKwh = 30;
         return (totalKwh * costPerKwh).toFixed(2);
     };
 

@@ -1,7 +1,7 @@
 import { View, TextInput, Button, StyleSheet, Text } from 'react-native'
 import { useEffect, useState } from 'react'
 import axios from 'axios'
-import { useAuthStore } from '../../store/authStore'
+import { useAuthStore } from "../../store/authStore"
 import { useRouter, Link } from 'expo-router'
 import * as AuthSession from 'expo-auth-session'
 

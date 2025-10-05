@@ -4,9 +4,10 @@ import { StyleSheet, TouchableOpacity } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
+
 interface ConsumptionRecord {
-    id: number;
-    deviceId: number;
+    id: string;
+    deviceId: string;
     device_name: string;
     hours: number;
     minutes: number;
@@ -15,9 +16,8 @@ interface ConsumptionRecord {
 }
 
 interface Device {
-    id: number;
-    deviceName: string;
-    description: string;
+    id: string;
+    device_name: string;
     location: string;
     powerUsage: number;
 }
@@ -26,7 +26,7 @@ interface ConsumptionRecordCardProps {
     record: ConsumptionRecord;
     device?: Device;
     onEdit?: (record: ConsumptionRecord) => void;
-    onDelete?: (recordId: number) => void;
+    onDelete?: (recordId: string) => void;
 }
 
 export default function ConsumptionRecordCard({ record, device, onEdit, onDelete }: ConsumptionRecordCardProps) {
@@ -46,15 +46,15 @@ export default function ConsumptionRecordCard({ record, device, onEdit, onDelete
             <ThemedView style={styles.recordHeader}>
                 <ThemedView style={styles.deviceIcon}>
                     <ThemedText style={styles.deviceIconText}>
-                        {getDeviceIcon(record.deviceName)}
+                        {getDeviceIcon(record.device_name)}
                     </ThemedText>
                 </ThemedView>
                 <ThemedView style={styles.recordInfo}>
                     <ThemedText style={styles.categoryText}>
                         Category: Electricity
                     </ThemedText>
-                    <ThemedText type="defaultSemiBold" style={styles.deviceName}>
-                        Device name: {record.deviceName}
+                    <ThemedText type="defaultSemiBold" style={styles.device_name}>
+                        Device name: {record.device_name}
                     </ThemedText>
                     <ThemedText style={styles.recordDetails}>
                         Active for: {record.hours}h {record.minutes}m
@@ -66,7 +66,7 @@ export default function ConsumptionRecordCard({ record, device, onEdit, onDelete
                         Energy consumed: {record.energyConsumed.toFixed(3)} kWh
                     </ThemedText>
                     <ThemedText style={styles.statusText}>
-                        Units burned
+                        Units burned {(record.energyConsumed/1000).toFixed(2)}
                     </ThemedText>
                 </ThemedView>
                 <ThemedView style={styles.recordActions}>
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
         color: '#64748B',
     },
-    deviceName: {
+    device_name: {
         fontSize: 16,
         marginTop: 2,
         marginBottom: 4,

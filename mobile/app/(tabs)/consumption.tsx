@@ -16,37 +16,47 @@ import AddConsumptionModal from '@/components/consumptions/AddConsumptionModal'
 import FloatingAddButton from '@/components/consumptions/FloatingAddButton'
 import axios from 'axios'
 
-interface Device {
-  _id?: string
-  id: number
-  name: string
-  description: string
+interface DeviceItemResponse {
+  //  mapped shapee of the data from get response
+  _id: string
+  device_name: string
+  type: string
   location: string
-  powerUsage: number
+  consumption: number
+  state: string
+}
+
+interface DevicesApiResponse {
+  // type for the axios.get
+  devices: DeviceItemResponse[]
 }
 
 interface ConsumptionRecord {
-  _id?: string
-  deviceId: number
-  deviceName: string
-  powerUsage: number
+  // for crud operations prop type
+  id: string
+  deviceId: string
   hours: number
   minutes: number
-  energyConsumed: number
-  location?: string
-  cost: number
-  costPerKwh: number
-  createdAt?: string
-  updatedAt?: string
 }
 
-type DeviceItem = {
+interface ConsumptionItemResponse {
   _id: string
-  device_name: string
-  type?: string
-  location?: string
-  consumption?: number
-  state?: 'ON' | 'OFF'
+  createdAt: string
+  updatedAt: string
+  hours: number
+  minutes: number
+  device: {
+    _id: string
+    device_name: string
+    location: string
+    consumption: number
+    state: string
+    type: string
+  }
+}
+
+interface ConsumptionsApiResponse {
+  data: ConsumptionItemResponse[]
 }
 
 type ConsumptionInput = {
@@ -56,16 +66,16 @@ type ConsumptionInput = {
 }
 
 const API_BASE = (() => {
-  const defaultHost = ' 172.28.12.176' // replace with your PC IP when testing on device
+  const defaultHost = '192.168.177.176' // replace with your PC IP when testing on device
   if (Platform?.OS === 'android') {
-    return `http:// 172.28.12.176:5000/api` //10.0.2.2:5000
+    return `http://192.168.177.176:5000/api` //10.0.2.2:5000
   }
   return `http://${defaultHost}:5000/api`
 })()
 
 export default function Consumptions () {
   // Local state
-  const [devices, setDevices] = useState<DeviceItem[]>([])
+  const [devices, setDevices] = useState<DeviceItemResponse[]>([])
   const [loading, setLoading] = useState(false)
 
   const [isAddingRecord, setIsAddingRecord] = useState(false)
@@ -73,15 +83,17 @@ export default function Consumptions () {
     null
   )
   const [consumptionRecords, setConsumptionRecords] = useState<
-    ConsumptionRecord[]
+    ConsumptionItemResponse[]
   >([])
 
   const fetchDevices = async () => {
     setLoading(true)
     try {
-      const res = await axios.get(`${API_BASE}/get-all-devices`)
-      const list: DeviceItem[] = res.data?.devices || []
-      setDevices(list)
+      const res = await axios.get<DevicesApiResponse>(
+        `${API_BASE}/get-all-devices`
+      )
+      const deviceList: DeviceItemResponse[] = res.data?.devices || []
+      setDevices(deviceList)
     } catch (err) {
       console.log('Fetch devices error', err)
       Alert.alert(
@@ -96,8 +108,12 @@ export default function Consumptions () {
   const fetchConsumptions = async () => {
     setLoading(true)
     try {
-      const res = await axios.get(`${API_BASE}/consumptions/`)
-      const consumptionsList: ConsumptionRecord[] = res.data?.data || []
+      const res = await axios.get<ConsumptionsApiResponse>(
+        `${API_BASE}/consumptions/`
+      )
+      const consumptionsList: ConsumptionItemResponse[] = res.data?.data || []
+
+      console.log(consumptionsList)
       setConsumptionRecords(consumptionsList)
     } catch (err) {
       console.log('Fetch consumptions error', err)
@@ -129,13 +145,13 @@ export default function Consumptions () {
     }
   }
 
-  const updateConsumptionRecord = async ({
+  const updateConsumptionRecord = async (recordId : string, {
     deviceId,
     hours,
     minutes
   }: ConsumptionInput) => {
     try {
-      const res = await axios.post(`${API_BASE}/consumptions`, {
+      const res = await axios.put(`${API_BASE}/consumptions/${recordId}`, {
         deviceId,
         hours,
         minutes
@@ -155,7 +171,7 @@ export default function Consumptions () {
 
   // Handle adding new record
   const handleAddRecord = async (newRecord: {
-    deviceId: number
+    deviceId: string
     hours?: number
     minutes?: number
   }) => {
@@ -182,18 +198,16 @@ export default function Consumptions () {
 
   // Handle updating record
   const handleUpdateRecord = async (updatedRecord: {
-    deviceId: number
+    deviceId: string
     hours?: number
     minutes?: number
   }) => {
     try {
-      const recordId = editingRecord?._id
+      const recordId = editingRecord?.id
       if (!recordId) {
         throw new Error('Record ID not found')
       }
 
-      console.log('______recordId', recordId)
-      console.log('______updatedRecord', updatedRecord)
       await updateConsumptionRecord(recordId, {
         deviceId: updatedRecord.deviceId,
         hours: updatedRecord.hours || 0,
@@ -201,6 +215,8 @@ export default function Consumptions () {
       })
 
       setEditingRecord(null)
+
+      await fetchConsumptions()
       setIsAddingRecord(false)
       Alert.alert('Success', 'Energy record updated successfully!')
     } catch (error) {
@@ -210,7 +226,7 @@ export default function Consumptions () {
   }
 
   // Handle deleting record
-  const handleDeleteRecord = async (record: ConsumptionRecord) => {
+  const handleDeleteRecord = async (recordId: string) => {
     //   Alert.alert(
     //     'Delete Record',
     //     'Are you sure you want to delete this energy record?',
@@ -249,22 +265,21 @@ export default function Consumptions () {
   // Convert backend data for compatibility with existing components
   const compatibleDevices = devices.map(device => ({
     id: device._id,
-    name: device.device_name,
+    device_name: device.device_name,
     location: device.location,
     powerUsage: device.consumption
   }))
 
   const compatibleRecords = consumptionRecords.map(record => ({
-    id: record._id || '',
+    id: record._id,
     deviceId: record.device._id,
-    deviceName: record.device.device_name,
+    device_name: record.device.device_name,
     hours: record.hours,
     minutes: record.minutes,
     energyConsumed:
       (record.hours + Math.round(record.minutes / 60)) *
       record.device.consumption,
-    timestamp: new Date(record.createdAt || Date.now()),
-    _id: record._id
+    timestamp: new Date(record.createdAt || Date.now())
   }))
 
   // Show loading indicator
@@ -295,21 +310,27 @@ export default function Consumptions () {
             records={compatibleRecords}
             devices={compatibleDevices}
             onEditRecord={record => {
-              // Find the original record with backend data
               const originalRecord = consumptionRecords.find(
-                r => r._id === record._id
+                r => r._id === record.id
               )
+
               if (originalRecord) {
-                handleEditRecord(originalRecord)
+                const originalMappedRecord: ConsumptionRecord = {
+                  id: originalRecord._id,
+                  deviceId: originalRecord.device._id,
+                  hours: originalRecord.hours,
+                  minutes: originalRecord.minutes
+                }
+
+                handleEditRecord(originalMappedRecord)
               }
             }}
-            onDeleteRecord={record => {
-              // Find the original record with backend data
+            onDeleteRecord={recordId => {
               const originalRecord = consumptionRecords.find(
-                r => r._id === record._id
+                r => r._id === recordId
               )
               if (originalRecord) {
-                handleDeleteRecord(originalRecord)
+                handleDeleteRecord(originalRecord._id)
               }
             }}
           />
@@ -330,13 +351,10 @@ export default function Consumptions () {
         editingRecord={
           editingRecord
             ? {
-                id: editingRecord.deviceId,
+                id: editingRecord.id,
                 deviceId: editingRecord.deviceId,
-                deviceName: editingRecord.deviceName,
                 hours: editingRecord.hours,
                 minutes: editingRecord.minutes,
-                energyConsumed: editingRecord.energyConsumed,
-                timestamp: new Date(editingRecord.createdAt || Date.now())
               }
             : null
         }

@@ -5,9 +5,8 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
 interface Device {
-    id: number;
+    id: string;
     device_name: string;
-    description: string;
     location: string;
     powerUsage: number;
 }

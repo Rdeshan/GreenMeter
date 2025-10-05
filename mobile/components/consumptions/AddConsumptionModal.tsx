@@ -7,21 +7,17 @@ import { ThemedView } from '@/components/ThemedView';
 import DeviceInfoDisplay from './DeviceInfoDisplay';
 
 interface Device {
-    id: number;
+    id: string;
     device_name: string;
-    description: string;
     location: string;
     powerUsage: number;
 }
 
 interface ConsumptionRecord {
-    id: number;
-    deviceId: number;
-    deviceName: string;
-    hours: number;
-    minutes: number;
-    energyConsumed: number;
-    timestamp: Date;
+  id: string
+  deviceId: string
+  hours: number
+  minutes: number
 }
 
 interface AddConsumptionModalProps {
@@ -29,12 +25,12 @@ interface AddConsumptionModalProps {
     devices: Device[];
     editingRecord?: ConsumptionRecord | null;
     onCancel: () => void;
-    onSave: (record: Omit<ConsumptionRecord, 'id' | 'timestamp'>) => void;
+    onSave: (record: Omit<ConsumptionRecord, 'id'>) => void;
     onUpdate?: (record: ConsumptionRecord) => void;
 }
 
 export default function AddConsumptionModal({ visible, devices, editingRecord, onCancel, onSave, onUpdate }: AddConsumptionModalProps) {
-    const [selectedDeviceId, setSelectedDeviceId] = useState<number>(devices[0]?.id || 1);
+    const [selectedDeviceId, setSelectedDeviceId] = useState<string>(devices[0]?.id);
     const [hours, setHours] = useState('');
     const [minutes, setMinutes] = useState('');
 
@@ -48,7 +44,7 @@ export default function AddConsumptionModal({ visible, devices, editingRecord, o
             setMinutes(editingRecord.minutes.toString());
         } else {
             // Reset form for add mode
-            setSelectedDeviceId(devices[0]?.id || 1);
+            setSelectedDeviceId(devices[0]?.id);
             setHours('');
             setMinutes('');
         }
@@ -57,7 +53,7 @@ export default function AddConsumptionModal({ visible, devices, editingRecord, o
     const handleCancel = () => {
         setHours('');
         setMinutes('');
-        setSelectedDeviceId(devices[0]?.id || 1);
+        setSelectedDeviceId(devices[0]?.id);
         onCancel();
     };
 
@@ -78,10 +74,8 @@ export default function AddConsumptionModal({ visible, devices, editingRecord, o
             const updatedRecord: ConsumptionRecord = {
                 ...editingRecord,
                 deviceId: selectedDeviceId,
-                deviceName: selectedDevice.device_name,
                 hours: parseInt(hours || '0'),
                 minutes: parseInt(minutes || '0'),
-                energyConsumed: energyConsumed,
             };
 
             console.log('Updated Consumption Record:', {
@@ -97,7 +91,7 @@ export default function AddConsumptionModal({ visible, devices, editingRecord, o
             // Create new record
             const newRecord = {
                 deviceId: selectedDeviceId,
-                deviceName: selectedDevice.device_name,
+                device_name: selectedDevice.device_name,
                 hours: parseInt(hours || '0'),
                 minutes: parseInt(minutes || '0'),
                 energyConsumed: energyConsumed,
@@ -115,7 +109,7 @@ export default function AddConsumptionModal({ visible, devices, editingRecord, o
 
         setHours('');
         setMinutes('');
-        setSelectedDeviceId(devices[0]?.id || 1);
+        setSelectedDeviceId(devices[0]?.id);
     };
 
     const selectedDevice = devices.find(d => d.id === selectedDeviceId);
@@ -145,7 +139,7 @@ export default function AddConsumptionModal({ visible, devices, editingRecord, o
                             {devices.map((device) => (
                                 <Picker.Item
                                     key={device.id}
-                                    label={`${device.name} - ${device.location}`}
+                                    label={`${device.device_name} - ${device.location}`}
                                     value={device.id}
                                 />
                             ))}

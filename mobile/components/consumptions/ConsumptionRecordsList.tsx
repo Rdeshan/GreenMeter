@@ -4,9 +4,9 @@ import { View, StyleSheet } from 'react-native';
 import ConsumptionRecordCard from './ConsumptionRecordCard';
 
 interface ConsumptionRecord {
-    id: number;
-    deviceId: number;
-    deviceName: string;
+    id: string;
+    deviceId: string;
+    device_name: string;
     hours: number;
     minutes: number;
     energyConsumed: number;
@@ -14,9 +14,8 @@ interface ConsumptionRecord {
 }
 
 interface Device {
-    id: number;
-    name: string;
-    description: string;
+    id: string;
+    device_name: string;
     location: string;
     powerUsage: number;
 }
@@ -25,7 +24,7 @@ interface ConsumptionRecordsListProps {
     records: ConsumptionRecord[];
     devices: Device[];
     onEditRecord?: (record: ConsumptionRecord) => void;
-    onDeleteRecord?: (recordId: number) => void;
+    onDeleteRecord?: (recordId: string) => void;
 }
 
 export default function ConsumptionRecordsList({
@@ -38,6 +37,7 @@ export default function ConsumptionRecordsList({
         <View style={styles.recordsList}>
             {records.map((record) => {
                 const device = devices.find(d => d.id === record.deviceId);
+                if (!device) {return (<>No devices</>)}
                 return (
                 
                     <ConsumptionRecordCard
