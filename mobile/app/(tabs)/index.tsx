@@ -3,6 +3,12 @@ import {View,  Text,  TouchableOpacity,  StyleSheet,  FlatList,  SafeAreaView,  
   Platform,
 } from "react-native";
 import axios from "axios";
+import styles from "../../components/device_management/All_Styles"
+import EnergyToggle from "@/components/device_management/display_home/EnergyToggle";
+import EnergyIndicator from "@/components/device_management/display_home/EnergyIndicator"
+import { DeviceItem } from "@/components/device_management/display_home/type/DeviceItem";
+import EditDeviceModal from "@/components/device_management/display_home/Edit_Modal"
+import  SearchBar  from "@/components/device_management/display_home/SearchBar";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -12,83 +18,12 @@ const API_BASE = (() => {
   return `http://${defaultHost}:5000/api`;
 })();
 
-type DeviceItem = {
-  _id: string;
-  device_name: string;
-  type?: string;
-  location?: string;
-  consumption?: number;
-  state?: "ON" | "OFF";
-};
+
 
 // Custom Toggle Switch Component
-const EnergyToggle = ({ isOn, onToggle, disabled = false }) => {
-  const animatedValue = React.useRef(new Animated.Value(isOn ? 1 : 0)).current;
 
-  React.useEffect(() => {
-    Animated.spring(animatedValue, {
-      toValue: isOn ? 1 : 0,
-      useNativeDriver: false,
-    }).start();
-  }, [isOn]);
-
-  const backgroundColor = animatedValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['#E5E7EB', '#16a34a'],
-  });
-
-  const translateX = animatedValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [2, 22],
-  });
-
-  return (
-    <TouchableOpacity
-      style={[styles.toggleContainer, disabled && styles.toggleDisabled]}
-      onPress={onToggle}
-      disabled={disabled}
-      activeOpacity={0.8}
-    >
-      <Animated.View style={[styles.toggleTrack, { backgroundColor }]}>
-        <Animated.View
-          style={[
-            styles.toggleThumb,
-            {
-              transform: [{ translateX }],
-            },
-          ]}
-        />
-      </Animated.View>
-    </TouchableOpacity>
-  );
-};
 
 // Energy Status Indicator
-const EnergyIndicator = ({ consumption, isOn }) => {
-  const getEnergyLevel = () => {
-    if (!isOn) return 'off';
-    if (consumption < 50) return 'low';
-    if (consumption < 500) return 'medium';
-    return 'high';
-  };
-
-  const level = getEnergyLevel();
-  const colors = {
-    off: '#6B7280',
-    low: '#16a34a',
-    medium: '#F59E0B',
-    high: '#EF4444'
-  };
-
-  return (
-    <View style={styles.energyIndicator}>
-      <View style={[styles.energyDot, { backgroundColor: colors[level] }]} />
-      <Text style={[styles.energyText, { color: colors[level] }]}>
-        {isOn ? `${consumption || 0}W` : 'OFF'}
-      </Text>
-    </View>
-  );
-};
 
 export default function HomeScreen() {
   const [devices, setDevices] = useState<DeviceItem[]>([]);
@@ -99,6 +34,7 @@ export default function HomeScreen() {
   useEffect(() => {
     fetchDevices();
   }, []);
+
 
   const fetchDevices = async () => {
     setLoading(true);
@@ -125,7 +61,7 @@ export default function HomeScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              // Fixed: Use device._id directly as string parameter
+              
               await axios.delete(`${API_BASE}/delete-device/${device._id}`);
               setDevices((prev) => prev.filter((d) => d._id !== device._id));
             } catch (err) {
@@ -143,6 +79,7 @@ export default function HomeScreen() {
   };
 
   const handleEditSave = async (updated: DeviceItem) => {
+    
     setSaving(true);
     try {
       const payload = {
@@ -282,7 +219,9 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>🌱 GreenMeter</Text>
         <Text style={styles.subtitle}>Smart Energy Management</Text>
+        
       </View>
+     
 
       {/* Energy Overview */}
       <View style={styles.overviewCard}>
@@ -302,6 +241,9 @@ export default function HomeScreen() {
             <Text style={styles.overviewLabel}>Clean Energy</Text>
           </View>
         </View>
+      </View>
+       <View>
+        <SearchBar/>
       </View>
 
       {loading ? (
@@ -329,351 +271,19 @@ export default function HomeScreen() {
       {/* Edit Modal */}
       <Modal
         visible={!!editing}
+        transparent
         animationType="slide"
         onRequestClose={() => setEditing(null)}
       >
-        <SafeAreaView style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>Edit Device</Text>
-          {editing && (
-            <>
-              <TextInput
-                style={styles.input}
-                value={editing.device_name}
-                onChangeText={(t) => setEditing({ ...editing, device_name: t })}
-                placeholder="Device name"
-              />
-              <TextInput
-                style={styles.input}
-                value={editing.type || ''}
-                onChangeText={(t) => setEditing({ ...editing, type: t })}
-                placeholder="Type (e.g., Electric)"
-              />
-              <TextInput
-                style={styles.input}
-                value={editing.location || ''}
-                onChangeText={(t) => setEditing({ ...editing, location: t })}
-                placeholder="Location"
-              />
-              <TextInput
-                style={styles.input}
-                value={String(editing.consumption ?? "")}
-                onChangeText={(t) =>
-                  setEditing({
-                    ...editing,
-                    consumption: t === "" ? 0 : Number(t) || 0,
-                  })
-                }
-                placeholder="Consumption (Watts)"
-                keyboardType="numeric"
-              />
-
-              <View style={styles.modalActions}>
-                <TouchableOpacity
-                  style={[styles.modalBtn, styles.cancelBtn]}
-                  onPress={() => setEditing(null)}
-                >
-                  <Text style={styles.cancelBtnText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalBtn, styles.saveBtn]}
-                  onPress={() => editing && handleEditSave(editing)}
-                  disabled={saving}
-                >
-                  {saving ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Text style={styles.saveBtnText}>Save Changes</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
-        </SafeAreaView>
+        <EditDeviceModal
+          visible={!!editing}
+          device={editing}
+          onClose={() => setEditing(null)}
+          onSave={handleEditSave}
+          saving={saving}
+        />
       </Modal>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: "#F0F9F4" 
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 20,
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: "800",
-    color: "#16a34a",
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#6B7280",
-    marginTop: 4,
-    textAlign: "center",
-  },
-  overviewCard: {
-    backgroundColor: "#FFFFFF",
-    marginHorizontal: 20,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: "#16a34a",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  overviewRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  overviewItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  overviewNumber: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#16a34a',
-  },
-  overviewLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  overviewDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: '#E5E7EB',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    color: '#6B7280',
-    fontSize: 16,
-  },
-  listContainer: { 
-    padding: 20, 
-    paddingBottom: 32 
-  },
-  deviceCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 6,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  deviceCardOff: {
-    backgroundColor: "#F9FAFB",
-    opacity: 0.8,
-  },
-  cardHeader: { 
-    flexDirection: "row", 
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  deviceIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F0F9F4',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  iconText: { 
-    fontSize: 24 
-  },
-  deviceInfo: { 
-    flex: 1 
-  },
-  deviceName: { 
-    fontSize: 18, 
-    fontWeight: "700",
-    color: "#1F2937",
-  },
-  deviceLocation: { 
-    fontSize: 14, 
-    color: "#6B7280",
-    marginTop: 2,
-  },
-  cardActions: { 
-    flexDirection: "row", 
-    alignItems: "center", 
-    gap: 8 
-  },
-  actionBtn: { 
-    padding: 8,
-    marginLeft: 4,
-  },
-  editText: {
-    fontSize: 16,
-  },
-  deleteText: {
-    fontSize: 16,
-  },
-  toggleContainer: {
-    padding: 4,
-  },
-  toggleDisabled: {
-    opacity: 0.5,
-  },
-  toggleTrack: {
-    width: 44,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-  },
-  toggleThumb: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 3,
-  },
-  energyStats: {
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-    paddingTop: 16,
-  },
-  energyIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  energyDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 8,
-  },
-  energyText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    textTransform: 'uppercase',
-    fontWeight: '600',
-  },
-  statValue: {
-    fontSize: 14,
-    color: '#374151',
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  activeIndicator: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-  },
-  activeText: {
-    fontSize: 10,
-    color: '#16a34a',
-    fontWeight: '700',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    marginTop: 60,
-    paddingHorizontal: 20,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-  },
-  
-  modalContainer: { 
-    flex: 1, 
-    padding: 20, 
-    backgroundColor: "#F0F9F4" 
-  },
-  modalTitle: { 
-    fontSize: 24, 
-    fontWeight: "700", 
-    marginBottom: 24,
-    color: "#16a34a",
-    textAlign: 'center',
-  },
-  input: {
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    marginBottom: 16,
-    fontSize: 16,
-  },
-  modalActions: {
-    flexDirection: "row",
-    marginTop: 24,
-    gap: 12,
-  },
-  modalBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  cancelBtn: {
-    backgroundColor: "#F3F4F6",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-  },
-  saveBtn: {
-    backgroundColor: "#16a34a",
-  },
-  cancelBtnText: {
-    color: "#6B7280",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  saveBtnText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-});
