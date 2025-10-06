@@ -18,8 +18,8 @@ import axios from 'axios';
 
 // API Configuration
 const API_BASE = (() => {
-  const defaultHost = "192.168.1.46"; 
-  if (Platform?.OS === "android") return `http://192.168.1.46:5000/api/costs`;
+  const defaultHost = "192.168.11.117"; 
+  if (Platform?.OS === "android") return `http://192.168.11.117:5000/api/costs`;
   return `http://${defaultHost}:5000/api/costs`;
 })();
 
@@ -38,10 +38,12 @@ interface EnergyCost {
   watts?: number;
   hoursPerDay?: number;
   dailyKWh?: number;
+  monthlyKWh?: number;
   fuelType?: FuelType;
   liters?: number;
   tankSize?: TankSize;
   solarSavings?: number;
+  quantity?: number;
 }
 
 interface WeeklySummary {
@@ -160,7 +162,6 @@ export default function EnergyCostApp() {
   const [formData, setFormData] = useState<Partial<EnergyCost>>({
     userId: 'user123', // You can make this dynamic
     type: 'electricity',
-    totalCost: 0,
   });
 
   const [saving, setSaving] = useState(false);
@@ -204,47 +205,81 @@ export default function EnergyCostApp() {
     }
   };
 
-  const createEnergyCost = async () => {
-    setSaving(true);
-    try {
-      const response = await axios.post(`${API_BASE}/energy-cost`, formData);
-      setEnergyCosts(prev => [response.data.data, ...prev]);
-      resetForm();
-      setShowAddModal(false);
-      fetchWeeklySummary();
-      fetchMonthlySummary();
-      Alert.alert('Success', 'Energy cost added successfully!');
-    } catch (error) {
-      console.log('Create error:', error);
-      Alert.alert('Error', 'Failed to add energy cost');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const updateEnergyCost = async () => {
-    if (!editingItem?._id) return;
+const createEnergyCost = async () => {
+  setSaving(true);
+  
+  try {
+    // Remove calculated fields and convert numeric strings to numbers
+    const { totalCost, _id, date, dailyKWh, monthlyKWh, ...rawData } = formData;
     
-    setSaving(true);
-    try {
-      const response = await axios.put(`${API_BASE}/energy-cost/${editingItem._id}`, formData);
-      setEnergyCosts(prev => 
-        prev.map(item => 
-          item._id === editingItem._id ? response.data.data : item
-        )
-      );
-      setEditingItem(null);
-      resetForm();
-      fetchWeeklySummary();
-      fetchMonthlySummary();
-      Alert.alert('Success', 'Energy cost updated successfully!');
-    } catch (error) {
-      console.log('Update error:', error);
-      Alert.alert('Error', 'Failed to update energy cost');
-    } finally {
-      setSaving(false);
-    }
-  };
+    // Convert string inputs to numbers
+const dataToSend = {
+  ...rawData,
+  watts: rawData.watts !== undefined ? Number(rawData.watts) : undefined,
+  hoursPerDay: rawData.hoursPerDay !== undefined ? Number(rawData.hoursPerDay) : undefined,
+  liters: rawData.liters !== undefined ? Number(rawData.liters) : undefined,
+  solarSavings: rawData.solarSavings !== undefined ? Number(rawData.solarSavings) : undefined,
+  quantity: rawData.quantity !== undefined ? Number(rawData.quantity) : undefined,
+  tankSize: rawData.tankSize || undefined, // explicitly send tankSize if available
+  fuelType: rawData.fuelType || undefined,
+};
+    
+    const response = await axios.post(`${API_BASE}/energy-cost`, dataToSend);
+    setEnergyCosts(prev => [response.data.data, ...prev]);
+    resetForm();
+    setShowAddModal(false);
+    fetchWeeklySummary();
+    fetchMonthlySummary();
+    Alert.alert('Success', response.data.message || 'Energy cost added successfully!');
+  } catch (error: any) {
+    console.log('Create error:', error);
+    console.log('Error response:', error.response?.data);
+    Alert.alert('Error', error.response?.data?.message || 'Failed to add energy cost');
+  } finally {
+    setSaving(false);
+  }
+};
+
+const updateEnergyCost = async () => {
+  if (!editingItem?._id) return;
+  
+  setSaving(true);
+  try {
+    // Remove calculated fields and convert numeric strings to numbers
+    const { totalCost, _id, date, dailyKWh, monthlyKWh, ...rawData } = formData;
+    
+    // Convert string inputs to numbers
+const dataToSend = {
+  ...rawData,
+  watts: rawData.watts !== undefined ? Number(rawData.watts) : undefined,
+  hoursPerDay: rawData.hoursPerDay !== undefined ? Number(rawData.hoursPerDay) : undefined,
+  liters: rawData.liters !== undefined ? Number(rawData.liters) : undefined,
+  solarSavings: rawData.solarSavings !== undefined ? Number(rawData.solarSavings) : undefined,
+  quantity: rawData.quantity !== undefined ? Number(rawData.quantity) : undefined,
+  tankSize: rawData.tankSize || undefined, // explicitly send tankSize if available
+  fuelType: rawData.fuelType || undefined,
+};
+    
+    const response = await axios.put(`${API_BASE}/energy-cost/${editingItem._id}`, dataToSend);
+    setEnergyCosts(prev => 
+      prev.map(item => 
+        item._id === editingItem._id ? response.data.data : item
+      )
+    );
+    setEditingItem(null);
+    resetForm();
+    fetchWeeklySummary();
+    fetchMonthlySummary();
+    Alert.alert('Success', 'Energy cost updated successfully!');
+  } catch (error: any) {
+    console.log('Update error:', error);
+    console.log('Error response:', error.response?.data);
+    Alert.alert('Error', error.response?.data?.message || 'Failed to update energy cost');
+  } finally {
+    setSaving(false);
+  }
+};
+
 
   const deleteEnergyCost = (id: string) => {
     Alert.alert(
@@ -277,7 +312,6 @@ export default function EnergyCostApp() {
     setFormData({
       userId: 'user123',
       type: 'electricity',
-      totalCost: 0,
     });
   };
 
@@ -295,13 +329,35 @@ export default function EnergyCostApp() {
     resetForm();
   };
 
-  const handleSave = () => {
-    if (editingItem) {
-      updateEnergyCost();
-    } else {
-      createEnergyCost();
+const handleSave = () => {
+  // Validate required fields
+  if (formData.type === 'electricity') {
+    if (!formData.watts || !formData.hoursPerDay) {
+      Alert.alert('Required Fields', 'Please enter watts and hours per day');
+      return;
     }
-  };
+  } else if (formData.type === 'gas') {
+    if (formData.fuelType === 'lpg' && !formData.tankSize) {
+      Alert.alert('Required Fields', 'Please select tank size');
+      return;
+    }
+    if (formData.fuelType !== 'lpg' && !formData.liters) {
+      Alert.alert('Required Fields', 'Please enter liters');
+      return;
+    }
+  } else if (formData.type === 'solar') {
+    if (!formData.solarSavings) {
+      Alert.alert('Required Fields', 'Please enter solar savings');
+      return;
+    }
+  }
+
+  if (editingItem) {
+    updateEnergyCost();
+  } else {
+    createEnergyCost();
+  }
+};
 
   // Dynamic Form Rendering
   const renderDynamicFields = () => {
