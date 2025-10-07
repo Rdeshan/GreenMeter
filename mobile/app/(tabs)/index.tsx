@@ -4,6 +4,7 @@ import {View,  Text,  TouchableOpacity,  StyleSheet,  FlatList,  SafeAreaView,  
 } from "react-native";
 import axios from "axios";
 import styles from "../../components/device_management/All_Styles"
+import styles2 from "../../components/device_management/styleSheet_index"
 import EnergyToggle from "@/components/device_management/display_home/EnergyToggle";
 import EnergyIndicator from "@/components/device_management/display_home/EnergyIndicator"
 import { DeviceItem } from "@/components/device_management/display_home/type/DeviceItem";
@@ -169,18 +170,7 @@ export default function HomeScreen() {
               isOn={isOn}
               onToggle={() => handleToggleState(item)}
             />
-            <TouchableOpacity
-              style={styles.actionBtn}
-              onPress={() => handleEditOpen(item)}
-            >
-              <Text style={styles.editText}>✏️</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.actionBtn}
-              onPress={() => handleDelete(item)}
-            >
-              <Text style={styles.deleteText}>🗑️</Text>
-            </TouchableOpacity>
+          
           </View>
         </View>
 
@@ -192,15 +182,10 @@ export default function HomeScreen() {
               <Text style={styles.statValue}>{item.type || 'Electric'}</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Power</Text>
-              <Text style={styles.statValue}>{item.consumption || 0}W</Text>
+              <Text style={styles.statLabel}>Location</Text>
+              <Text style={styles.statValue}>{item.location}</Text>
             </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Status</Text>
-              <Text style={[styles.statValue, { color: isOn ? '#16a34a' : '#6B7280' }]}>
-                {item.state || 'OFF'}
-              </Text>
-            </View>
+           
           </View>
         </View>
 
@@ -258,6 +243,8 @@ export default function HomeScreen() {
           data={devices}
           keyExtractor={(it) => it._id}
           renderItem={renderItem}
+          numColumns={2}
+          columnWrapperStyle={styles2.columnWrapper} 
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={

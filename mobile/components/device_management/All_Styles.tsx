@@ -187,13 +187,15 @@ export default StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    
   },
   statItem: {
     alignItems: 'center',
     flex: 1,
+  
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#9CA3AF',
     textTransform: 'uppercase',
     fontWeight: '600',
