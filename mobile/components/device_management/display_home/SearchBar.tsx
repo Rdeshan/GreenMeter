@@ -55,6 +55,7 @@ export default function DeviceList() {
       <TextInput
         style={styles.searchBar}
         placeholder="Search devices..."
+        placeholderTextColor="#b3b2b2ff"
         value={search}
         onChangeText={setSearch}
       />

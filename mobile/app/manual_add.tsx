@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
+  ImageBackground,
   Text,
   TextInput,
   TouchableOpacity,
@@ -14,6 +15,7 @@ import {
   Dimensions,
 } from 'react-native';
 import Constants from 'expo-constants';
+import eco_image from '../assets/images/clean_energy.png'
 import { useRouter } from 'expo-router'; // <-- added
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -356,6 +358,7 @@ export default function ManualAddScreen() {
       >
         <Text style={styles.titlee}>🌱 GreenMeter</Text>
         <View style={styles.card}>
+
           
           {/* Back arrow header */}
           <View style={styles.headerRow}>

@@ -151,7 +151,7 @@ export default function HomeScreen() {
 
   const renderItem = ({ item }: { item: DeviceItem }) => {
     const isOn = item.state === "ON";
-    
+    {/*card start from here */}
     return (
       <View style={[styles.deviceCard, !isOn && styles.deviceCardOff]}>
         <View style={styles.cardHeader}>
@@ -227,18 +227,20 @@ export default function HomeScreen() {
       <View style={styles.overviewCard}>
         <View style={styles.overviewRow}>
           <View style={styles.overviewItem}>
+            <Text style={styles.overviewNumber}>{}</Text>
+            <Text style={styles.overviewLabel}>All devices</Text>
+          </View>
+          <View style={styles.overviewDivider} />
+          <View style={styles.overviewItem}>
             <Text style={styles.overviewNumber}>{totalActiveDevices}</Text>
             <Text style={styles.overviewLabel}>Active Devices</Text>
           </View>
           <View style={styles.overviewDivider} />
           <View style={styles.overviewItem}>
-            <Text style={styles.overviewNumber}>{totalPowerConsumption}W</Text>
+            <Text style={styles.currentUsageNumber}>{totalPowerConsumption}
+              <Text style={styles.overviewNumber}>W</Text>
+            </Text>
             <Text style={styles.overviewLabel}>Current Usage</Text>
-          </View>
-          <View style={styles.overviewDivider} />
-          <View style={styles.overviewItem}>
-            <Text style={styles.overviewNumber}>⚡</Text>
-            <Text style={styles.overviewLabel}>Clean Energy</Text>
           </View>
         </View>
       </View>

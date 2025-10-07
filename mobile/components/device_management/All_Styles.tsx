@@ -28,7 +28,7 @@ export default StyleSheet.create({
     marginHorizontal: 20,
     borderRadius: 16,
     padding: 20,
-    marginBottom: 20,
+    marginBottom: 5,
     shadowColor: "#16a34a",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -48,6 +48,11 @@ export default StyleSheet.create({
     fontSize: 24,
     fontWeight: '800',
     color: '#16a34a',
+  },
+  currentUsageNumber:{
+      fontSize: 24,
+    fontWeight: '800',
+    color: '#be1531ff',
   },
   overviewLabel: {
     fontSize: 12,
