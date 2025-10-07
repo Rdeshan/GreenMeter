@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, TextInput, StyleSheet, FlatList, Text, Platform } from "react-native";
+import { View, TextInput, StyleSheet, FlatList, Text, Platform, TouchableOpacity } from "react-native";
 import axios from "axios";
 
 interface Device {
@@ -70,12 +70,13 @@ export default function DeviceList() {
           </View>
         )}
       />
+    
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
+  container: { flex: 1, padding: 16,marginBottom:50 },
   searchBar: {
     borderWidth: 1,
     borderColor: "#ccc",
@@ -95,4 +96,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   cardText: { fontSize: 18, color: "black" },
+  closeBtn: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    backgroundColor: 'red',
+    borderRadius: 20,
+    padding: 10,
+  },
+  closeText: {
+    color: 'white',
+    fontSize: 18,
+  },
 });

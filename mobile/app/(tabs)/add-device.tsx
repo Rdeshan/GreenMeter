@@ -1,118 +1,257 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  StatusBar,
-  SafeAreaView,
-} from 'react-native';
-import { router } from 'expo-router';
+import React, { useEffect, useState } from "react";
+import {View,  Text,  TouchableOpacity,  StyleSheet,  FlatList,  SafeAreaView,  Animated,  Dimensions,  Alert,  Modal,TextInput,ActivityIndicator,
+  Platform,
+} from "react-native";
+import axios from "axios";
+import styles from "../../components/device_management/All_Styles"
+import EnergyToggle from "@/components/device_management/display_home/EnergyToggle";
+import EnergyIndicator from "@/components/device_management/display_home/EnergyIndicator"
+import { DeviceItem } from "@/components/device_management/display_home/type/DeviceItem";
+import EditDeviceModal from "@/components/device_management/display_home/Edit_Modal"
+import  SearchBar  from "@/components/device_management/display_home/SearchBar";
 
-export default function NewDeviceScreen() {
-  const handleManuallyAddDevice = () => {
-      router.push("/manual_add");
-    // Navigate to manually add device screen
+const { width: screenWidth } = Dimensions.get("window");
 
+const API_BASE = (() => {
+  const defaultHost = "192.168.8.194"; // replace with your PC IP when testing on device
+  if (Platform?.OS === "android") return `http://10.0.2.2:5000/api`;
+  return `http://${defaultHost}:5000/api`;
+})();
+
+export default function HomeScreen() {
+  const [devices, setDevices] = useState<DeviceItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [editing, setEditing] = useState<DeviceItem | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetchDevices();
+  }, []);
+
+
+  const fetchDevices = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_BASE}/get-all-devices`);
+      const list: DeviceItem[] = res.data?.devices || [];
+      setDevices(list);
+    } catch (err) {
+      console.log("Fetch devices error", err);
+      Alert.alert("Error", "Could not fetch devices. Check backend/CORS/IP.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleAddDeviceWithAI = () => {
-    // Navigate to AI device setup screen
+  const handleDelete = (device: DeviceItem) => {
+    Alert.alert(
+      "Delete Device",
+      `Are you sure to delete "${device.device_name}"?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              
+              await axios.delete(`${API_BASE}/delete-device/${device._id}`);
+              setDevices((prev) => prev.filter((d) => d._id !== device._id));
+            } catch (err) {
+              console.log("Delete error", err);
+              Alert.alert("Error", "Failed to delete device");
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleEditOpen = (device: DeviceItem) => {
+    setEditing({ ...device });
+  };
+
+  const handleEditSave = async (updated: DeviceItem) => {
     
+    setSaving(true);
+    try {
+      const payload = {
+        device_name: updated.device_name,
+        type: updated.type || '',
+        location: updated.location || '',
+        consumption: updated.consumption || 0,
+      };
+      const res = await axios.put(
+        `${API_BASE}/update-device/${updated._id}`,
+        payload
+      );
+      
+      const updatedDevice = res.data?.updateDevice || res.data?.data || updated;
+      setDevices((prev) =>
+        prev.map((d) => (d._id === updated._id ? { ...d, ...updatedDevice } : d))
+      );
+      setEditing(null);
+      Alert.alert("Success", "Device updated successfully");
+    } catch (err) {
+      console.log("Update error", err);
+      Alert.alert("Error", "Failed to update device");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleToggleState = async (device: DeviceItem) => {
+    const newState = device.state === "ON" ? "OFF" : "ON";
+    // optimistic UI
+    setDevices((prev) =>
+      prev.map((d) => (d._id === device._id ? { ...d, state: newState } : d))
+    );
+    try {
+      await axios.patch(
+        `${API_BASE}/updatePartially/${device._id}/state`,
+        { state: newState }
+      );
+    } catch (err) {
+      console.log("Toggle state error", err);
+      // revert on error
+      setDevices((prev) =>
+        prev.map((d) => (d._id === device._id ? { ...d, state: device.state } : d))
+      );
+      Alert.alert("Error", "Failed to update device state");
+    }
+  };
+
+  const getDeviceIcon = (type?: string, name?: string) => {
+    if (!type && !name) return "🔌";
+    
+    const deviceName = (name || '').toLowerCase();
+    const deviceType = (type || '').toLowerCase();
+    
+    if (deviceName.includes('fan')) return "🌀";
+    if (deviceName.includes('ac') || deviceName.includes('air')) return "❄️";
+    if (deviceName.includes('heater') || deviceName.includes('water')) return "🔥";
+    if (deviceName.includes('light') || deviceName.includes('led')) return "💡";
+    if (deviceName.includes('washing') || deviceName.includes('machine')) return "🧺";
+    if (deviceType.includes('electric')) return "⚡";
+    
+    return "🔌";
+  };
+
+  const totalActiveDevices = devices.filter(device => device.state === "ON").length;
+  const totalPowerConsumption = devices
+    .filter(device => device.state === "ON")
+    .reduce((sum, device) => sum + (device.consumption || 0), 0);
+
+  const renderItem = ({ item }: { item: DeviceItem }) => {
+    const isOn = item.state === "ON";
+    {/*card start from here */}
+    return (
+      <View style={[styles.deviceCard, !isOn && styles.deviceCardOff]}>
+        <View style={styles.cardHeader}>
+          <View style={styles.deviceIcon}>
+            <Text style={styles.iconText}>{getDeviceIcon(item.type, item.device_name)}</Text>
+          </View>
+          <View style={styles.deviceInfo}>
+            <Text style={styles.deviceName}>{item.device_name}</Text>
+            <Text style={styles.deviceLocation}>
+              📍 {item.location || 'Unknown'} • {item.type || 'Electric'}
+            </Text>
+          </View>
+          <View style={styles.cardActions}>
+            <EnergyToggle
+              isOn={isOn}
+              onToggle={() => handleToggleState(item)}
+            />
+            
+          </View>
+        </View>
+
+        <View style={styles.energyStats}>
+         
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Type</Text>
+              <Text style={styles.statValue}>{item.type || 'Electric'}</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Power</Text>
+              <Text style={styles.statValue}>{item.consumption || 0}W</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => handleEditOpen(item)}
+            >
+              <Text style={styles.editText}>✏️</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => handleDelete(item)}
+            >
+              <Text style={styles.deleteText}>🗑️</Text>
+            </TouchableOpacity>
+       
+          </View>
+        </View>
+
+        {isOn && (
+          <View style={styles.activeIndicator}>
+            <Text style={styles.activeText}>● ACTIVE</Text>
+          </View>
+        )}
+      </View>
+    );
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-      
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.iconContainer}>
-          <Text style={styles.plusIcon}>+</Text>
+    
+     
+
+      {/* Energy Overview */}
+     
+       <View>
+        <SearchBar/>
+      </View>
+
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#16a34a" />
+          <Text style={styles.loadingText}>Loading devices...</Text>
         </View>
-        <Text style={styles.title}>New Device</Text>
-      </View>
+      ) : (
+        <FlatList
+          data={devices}
+          keyExtractor={(it) => it._id}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyIcon}>📱</Text>
+              <Text style={styles.emptyTitle}>No devices found</Text>
+              <Text style={styles.emptySubtitle}>Add your first device to get started</Text>
+            </View>
+          }
+        />
+      )}
 
-      {/* Button Container */}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity 
-          style={styles.button}
-          onPress={handleManuallyAddDevice}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.buttonText}>manually add device</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.button}
-          onPress={handleAddDeviceWithAI}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.buttonText}>add device with AI</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Edit Modal */}
+      <Modal
+        visible={!!editing}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setEditing(null)}
+      >
+        <EditDeviceModal
+          visible={!!editing}
+          device={editing}
+          onClose={() => setEditing(null)}
+          onSave={handleEditSave}
+          saving={saving}
+        />
+      </Modal>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    paddingHorizontal: 20,
-  },
-  header: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 200,
-    marginBottom: -300,
-    flexDirection: 'row',
-    gap: 10,
-  },
-  iconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#f5f5f5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  plusIcon: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#333',
-  },
-  buttonContainer: {
-    flex: 1,
-    justifyContent: 'center',
-       alignItems: 'center', 
-    gap: 15,
-  },
-  button: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 25,
-    width: '70%',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-});
