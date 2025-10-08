@@ -290,7 +290,7 @@ export default function ManualAddScreen() {
   // navigate back to home (tabs index)
   const handleBack = () => {
     // push to tabs home; change path if your route differs
-    router.push('/(tabs)/add-device');
+    router.push('/add-device');
   };
 
   const validate = () => {
@@ -356,7 +356,7 @@ export default function ManualAddScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.wrapper}
       >
-        <Text style={styles.titlee}>🌱 GreenMeter</Text>
+        
         <View style={styles.card}>
 
           
@@ -438,7 +438,7 @@ export default function ManualAddScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    marginTop: -150,
+    height:15,
     backgroundColor: "#F0F9F4" 
   },
   wrapper: {

@@ -289,4 +289,45 @@ export default StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
+
+
+  fabContainer: {
+    position: 'absolute',
+    bottom: 110,
+    right: 30,
+  },
+  tagWrapper: {
+    flexDirection: 'row', // Button + tag side-by-side
+    alignItems: 'center',
+  },
+  fab: {
+    backgroundColor: '#007AFF',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 3,
+  },
+  fabText: {
+    fontSize: 30,
+    color: '#fff',
+  },
+  tag: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderTopRightRadius: 30,
+    borderBottomRightRadius: 30,
+    marginBottom:-10
+  },
+  tagText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
 });

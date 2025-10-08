@@ -9,6 +9,9 @@ import EnergyIndicator from "@/components/device_management/display_home/EnergyI
 import { DeviceItem } from "@/components/device_management/display_home/type/DeviceItem";
 import EditDeviceModal from "@/components/device_management/display_home/Edit_Modal"
 import  SearchBar  from "@/components/device_management/display_home/SearchBar";
+import FloatingButton from "@/components/device_management/display_home/type/FloatingButton";
+import BottomSheet from "@/components/device_management/display_home/BottomSheet";
+import ManualAddScreen from "../manual_add";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -23,6 +26,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<DeviceItem | null>(null);
   const [saving, setSaving] = useState(false);
+  const [visible, setVisible] = useState<boolean>(false);
 
   useEffect(() => {
     fetchDevices();
@@ -198,6 +202,7 @@ export default function HomeScreen() {
             <Text style={styles.activeText}>● ACTIVE</Text>
           </View>
         )}
+        
       </View>
     );
   };
@@ -235,6 +240,11 @@ export default function HomeScreen() {
           }
         />
       )}
+      <FloatingButton onPress={() => setVisible(true)} />
+
+      <BottomSheet visible={visible} onClose={() => setVisible(false)}>
+        <ManualAddScreen />
+      </BottomSheet>
 
       {/* Edit Modal */}
       <Modal
