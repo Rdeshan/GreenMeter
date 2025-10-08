@@ -243,7 +243,7 @@ export default function HomeScreen() {
       <FloatingButton onPress={() => setVisible(true)} />
 
       <BottomSheet visible={visible} onClose={() => setVisible(false)}>
-        <ManualAddScreen />
+        <ManualAddScreen onClose={() => setVisible(false)} />
       </BottomSheet>
 
       {/* Edit Modal */}
