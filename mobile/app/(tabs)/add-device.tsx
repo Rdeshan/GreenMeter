@@ -3,6 +3,8 @@ import {View,  Text,  TouchableOpacity,  StyleSheet,  FlatList,  SafeAreaView,  
   Platform,RefreshControl 
 } from "react-native";
 import axios from "axios";
+import { useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import styles from "../../components/device_management/All_Styles"
 import EnergyToggle from "@/components/device_management/display_home/EnergyToggle";
 import EnergyIndicator from "@/components/device_management/display_home/EnergyIndicator"
@@ -38,9 +40,12 @@ const [search, setSearch] = useState("");
     setRefreshing(false);
   };
 
-  useEffect(() => {
+ useFocusEffect(
+  useCallback(() => {
     fetchDevices();
-  }, []);
+  }, [])
+);
+
 
   useEffect(() => {
   if (search.trim() === "") {
