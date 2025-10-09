@@ -24,6 +24,8 @@ const API_BASE = (() => {
 export default function HomeScreen() {
   const [devices, setDevices] = useState<DeviceItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [filteredDevices, setFilteredDevices] = useState<DeviceItem[]>([]);
+const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<DeviceItem | null>(null);
   const [saving, setSaving] = useState(false);
   const [visible, setVisible] = useState<boolean>(false);
@@ -40,6 +42,21 @@ export default function HomeScreen() {
     fetchDevices();
   }, []);
 
+  useEffect(() => {
+  if (search.trim() === "") {
+    setFilteredDevices(devices);
+  } else {
+    const lower = search.toLowerCase();
+    const results = devices.filter((d) =>
+      d.device_name.toLowerCase().includes(lower) ||
+      d.type?.toLowerCase().includes(lower) ||
+      d.location?.toLowerCase().includes(lower)
+    );
+    setFilteredDevices(results);
+  }
+}, [search, devices]);
+
+
 
   const fetchDevices = async () => {
     setLoading(true);
@@ -47,6 +64,8 @@ export default function HomeScreen() {
       const res = await axios.get(`${API_BASE}/get-all-devices`);
       const list: DeviceItem[] = res.data?.devices || [];
       setDevices(list);
+      setFilteredDevices(list);
+
     } catch (err) {
       console.log("Fetch devices error", err);
       Alert.alert("Error", "Could not fetch devices. Check backend/CORS/IP.");
@@ -225,7 +244,8 @@ export default function HomeScreen() {
       {/* Energy Overview */}
      
        <View>
-        <SearchBar/>
+        <SearchBar search={search} setSearch={setSearch} />
+
       </View>
 
       {loading ? (
@@ -235,7 +255,7 @@ export default function HomeScreen() {
         </View>
       ) : (
         <FlatList
-          data={devices}
+          data={filteredDevices}
           keyExtractor={(it) => it._id}
           renderItem={renderItem}
           contentContainerStyle={styles.listContainer}
