@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {View,  Text,  TouchableOpacity,  StyleSheet,  FlatList,  SafeAreaView,  Animated,  Dimensions,  Alert,  Modal,TextInput,ActivityIndicator,
-  Platform,
+  Platform,RefreshControl 
 } from "react-native";
 import axios from "axios";
 import styles from "../../components/device_management/All_Styles"
@@ -27,6 +27,14 @@ export default function HomeScreen() {
   const [editing, setEditing] = useState<DeviceItem | null>(null);
   const [saving, setSaving] = useState(false);
   const [visible, setVisible] = useState<boolean>(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+
+    const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchDevices();
+    setRefreshing(false);
+  };
 
   useEffect(() => {
     fetchDevices();
@@ -203,6 +211,7 @@ export default function HomeScreen() {
           </View>
         )}
         
+        
       </View>
     );
   };
@@ -235,11 +244,18 @@ export default function HomeScreen() {
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyIcon}>📱</Text>
               <Text style={styles.emptyTitle}>No devices found</Text>
-              <Text style={styles.emptySubtitle}>Add your first device to get started</Text>
+              <Text style={styles.emptySubtitle}>
+                Add your first device to get started
+                </Text>
             </View>
+            
           }
+           refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         />
       )}
+        
       <FloatingButton onPress={() => setVisible(true)} />
 
       <BottomSheet visible={visible} onClose={() => setVisible(false)}>

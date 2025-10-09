@@ -3,6 +3,8 @@ import {View,  Text,  TouchableOpacity,  StyleSheet,  FlatList,  SafeAreaView,  
   Platform,
 } from "react-native";
 import axios from "axios";
+import { useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import styles from "../../components/device_management/All_Styles"
 import styles2 from "../../components/device_management/styleSheet_index"
 import EnergyToggle from "@/components/device_management/display_home/EnergyToggle";
@@ -32,10 +34,11 @@ export default function HomeScreen() {
   const [editing, setEditing] = useState<DeviceItem | null>(null);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    fetchDevices();
-  }, []);
-
+  useFocusEffect(
+    useCallback(() => {
+      fetchDevices();
+    }, [])
+  );
 
   const fetchDevices = async () => {
     setLoading(true);

@@ -69,6 +69,7 @@ export default StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  
   },
   loadingText: {
     marginTop: 12,
@@ -77,7 +78,9 @@ export default StyleSheet.create({
   },
   listContainer: { 
     padding: 20, 
-    paddingBottom: 32 
+    paddingBottom: 100, 
+    
+
   },
   deviceCard: {
     backgroundColor: "#FFFFFF",
@@ -91,6 +94,7 @@ export default StyleSheet.create({
     elevation: 6,
     borderWidth: 2,
     borderColor: 'transparent',
+
   },
   deviceCardOff: {
     backgroundColor: "#F9FAFB",
