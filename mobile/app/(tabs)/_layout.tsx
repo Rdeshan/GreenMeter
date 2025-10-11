@@ -93,6 +93,14 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={30} name="person.fill" color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="goals"
+        options={{
+          tabBarShowLabel: false,
+          title: 'Goals',
+          tabBarIcon: ({ color }) => <IconSymbol size={30} name="trophy.fill" color={color} />,
+        }}
+      />
     </Tabs>
   );
 }

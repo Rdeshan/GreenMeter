@@ -16,7 +16,7 @@ import  SearchBar  from "@/components/device_management/display_home/SearchBar";
 const { width: screenWidth } = Dimensions.get("window");
 
 const API_BASE = (() => {
-  const defaultHost = "192.168.8.194"; // replace with your PC IP when testing on device
+  const defaultHost = "192.168.8.111"; // replace with your PC IP when testing on device
   if (Platform?.OS === "android") return `http://10.0.2.2:5000/api`;
   return `http://${defaultHost}:5000/api`;
 })();
