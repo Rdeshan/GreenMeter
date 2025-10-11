@@ -1,84 +1,140 @@
-import { Request, Response } from 'express';
-import Consumption from '../models/consumption.model.js';
+import { Request, Response } from 'express'
+import Consumption from '../models/consumption.model.js'
+import Device, { IDevice } from '../models/Device'
+import AiGenerate from '../config/gemini.config.js'
 
 // Create consumption record
 export const addConsumptionController = async (req: Request, res: Response) => {
   try {
-    const { deviceId, hours, minutes } = req.body;
+    const { deviceId, hours, minutes } = req.body
+
+    const device = await Device.findById<IDevice>(deviceId)
+    if (!device) {
+      return res
+        .status(409)
+        .json({ success: false, message: 'No devices found' })
+    }
 
     const consumption = new Consumption({
       device: deviceId,
       hours,
-      minutes,
-    });
+      minutes
+    })
+    await consumption.save()
 
-    await consumption.save();
+    const aiReqData = {
+      device_name: device.device_name,
+      consumption: device.consumption,
+      hours,
+      minutes
+    }
+    const responseFromAI = await AiGenerate(
+      'consumption_recommendation',
+      aiReqData
+    )
 
-    res.status(201).json({ success: true, data: consumption });
+    const recommendations = responseFromAI?.recommendations || null
+    const summary = responseFromAI?.summary || ''
+
+    if (recommendations || summary) {
+      await Consumption.findByIdAndUpdate(
+        consumption._id,
+        {
+          $set: {
+            recommendations,
+            summary
+          }
+        },
+        { new: true }
+      )
+    }
+
+    res.status(201).json({ success: true, data: consumption })
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: error.message })
   }
-};
+}
 
 // Get all consumptions
-export const getAllConsumptionsController = async (req: Request, res: Response) => {
+export const getAllConsumptionsController = async (
+  req: Request,
+  res: Response
+) => {
   try {
     const consumptions = await Consumption.find()
-      .populate("device") 
-      .sort({ createdAt: -1 });
+      .select('-recommendations -summary')
+      .populate('device')
+      .sort({ createdAt: -1 })
 
-    res.json({ success: true, data: consumptions });
+    res.json({ success: true, data: consumptions })
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: error.message })
   }
-};
+}
 
 // Get single consumption by ID
-export const getConsumptionByIdController = async (req : Request, res : Response) => {
-    try {
-        const { id } = req.params;
-        const consumption = await Consumption.findById(id).populate("device") ;
+export const getConsumptionByIdController = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { id } = req.params
+    const consumption = await Consumption.findById(id).populate('device')
 
-        if (!consumption) {
-            return res.status(404).json({ success: false, message: 'Record not found' });
-        }
-
-        res.json({ success: true, data: consumption });
-    } catch (error : any) {
-        res.status(500).json({ success: false, message: error.message });
+    if (!consumption) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Record not found' })
     }
-};
+
+    res.json({ success: true, data: consumption })
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message })
+  }
+}
 
 // Update consumption
-export const editConsumptionController = async (req : Request, res : Response) => {
-    try {
-        const { id } = req.params;
-        const updateData = req.body;
+export const editConsumptionController = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { id } = req.params
+    const updateData = req.body
 
-        const consumption = await Consumption.findByIdAndUpdate(id, updateData, { new: true });
+    const consumption = await Consumption.findByIdAndUpdate(id, updateData, {
+      new: true
+    })
 
-        if (!consumption) {
-            return res.status(400).json({ success: false, message: 'Device update failed' });
-        }
-
-        res.json({ success: true, data: consumption });
-    } catch (error : any) {
-        res.status(500).json({ success: false, message: error.message });
+    if (!consumption) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Device update failed' })
     }
-};
+
+    res.json({ success: true, data: consumption })
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message })
+  }
+}
 
 // Delete consumption
-export const deleteConsumptionController = async (req : Request, res : Response) => {
-    try {
-        const { id } = req.params;
-        const consumption = await Consumption.findByIdAndDelete(id);
+export const deleteConsumptionController = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { id } = req.params
+    const consumption = await Consumption.findByIdAndDelete(id)
 
-        if (!consumption) {
-            return res.status(404).json({ success: false, message: 'Record not found' });
-        }
-
-        res.json({ success: true, message: 'Record deleted successfully' });
-    } catch (error : any) {
-        res.status(500).json({ success: false, message: error.message });
+    if (!consumption) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Record not found' })
     }
-};
+
+    res.json({ success: true, message: 'Record deleted successfully' })
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message })
+  }
+}

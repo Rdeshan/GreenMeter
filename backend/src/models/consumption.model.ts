@@ -17,6 +17,14 @@ const consumptionSchema = new mongoose.Schema(
       type: Number,
       required: true,
       default: 0
+    },
+    recommendations: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null
+    },
+    summary: {
+      type: String,
+      default: ''
     }
   },
   {
