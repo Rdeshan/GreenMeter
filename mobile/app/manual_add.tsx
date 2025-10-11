@@ -269,7 +269,7 @@ const getBackendUrl = () => {
     const hostFromExpo =
       (Constants.manifest as any)?.debuggerHost?.split(':')[0] ||
       (Constants.expoConfig as any)?.hostUri?.split(':')[0];
-    const host = hostFromExpo || '192.168.115.65';
+    const host = hostFromExpo || '192.168.8.194';
     return `http://${host}:5000/api/devices`;
   }
   return 'https:///192.168.8.194:5000/api/devices';

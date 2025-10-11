@@ -1,24 +1,32 @@
-import React, { useState } from "react";
-import { View, Platform, Text, TextInput, Button, Alert, StyleSheet, ScrollView } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Platform, Text, TextInput, Button, Alert, StyleSheet } from "react-native";
 import { Picker } from '@react-native-picker/picker';
 import Constants from 'expo-constants';
+import axios from "axios";
+import ThreeButtons from "@/components/CostThreeButtons/threeButtonsCost"
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+
+import DropDownPicker from 'react-native-dropdown-picker';
 
 const getBackendUrl = () => {
   if (__DEV__) {
     if (Platform.OS === 'android') return 'http://10.0.2.2:5000/api/costs/energy-cost';
-    const hostFromExpo =
-      (Constants.manifest as any)?.debuggerHost?.split(':')[0] ||
-      (Constants.expoConfig as any)?.hostUri?.split(':')[0];
+    const hostFromExpo = (Constants.manifest as any)?.debuggerHost?.split(':')[0] || (Constants.expoConfig as any)?.hostUri?.split(':')[0];
     const host = hostFromExpo || '192.168.115.65';
     return `http://${host}:5000/api/costs/energy-cost`;
   }
   return 'https://192.168.8.194:5000/api/costs/energy-cost';
 };
 
+const API_BASE = (() => {
+  const defaultHost = "192.168.8.194";
+  if (Platform?.OS === "android") return `http://10.0.2.2:5000/api`;
+  return `http://${defaultHost}:5000/api`;
+})();
+
 const EnergyForm = ({ onClose }: { onClose?: () => void }) => {
   const [type, setType] = useState("electricity");
   const [userId, setUserId] = useState("");
-  const [deviceId, setDeviceId] = useState("");
   const [watts, setWatts] = useState("");
   const [hoursPerDay, setHoursPerDay] = useState("");
   const [fuelType, setFuelType] = useState("petrol");
@@ -27,9 +35,13 @@ const EnergyForm = ({ onClose }: { onClose?: () => void }) => {
   const [solarSavings, setSolarSavings] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState<string | null>(null);
+  const [items, setItems] = useState<{ label: string, value: string }[]>([]);
+
   const handleSubmit = async () => {
     let payload: any = { userId, type };
-    if (deviceId) payload.deviceId = deviceId;
+    if (value) payload.deviceId = value;
 
     switch (type) {
       case "electricity":
@@ -48,7 +60,6 @@ const EnergyForm = ({ onClose }: { onClose?: () => void }) => {
 
     try {
       setLoading(true);
-
       const res = await fetch(getBackendUrl(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -56,20 +67,11 @@ const EnergyForm = ({ onClose }: { onClose?: () => void }) => {
       });
 
       if (res.ok) {
-        const data = await res.json();
+        await res.json();
         Alert.alert('Success', 'Energy cost created successfully');
-
-        // Reset fields
-        setUserId("");
-        setType("electricity");
-        setDeviceId("");
-        setWatts("");
-        setHoursPerDay("");
-        setFuelType("petrol");
-        setLiters("");
-        setTankSize("12.5kg");
-        setSolarSavings("");
-
+        setUserId(""); setType("electricity"); setValue(null);
+        setWatts(""); setHoursPerDay(""); setFuelType("petrol");
+        setLiters(""); setTankSize("12.5kg"); setSolarSavings("");
         onClose && onClose();
       } else {
         const err = await res.json().catch(() => ({}));
@@ -83,8 +85,27 @@ const EnergyForm = ({ onClose }: { onClose?: () => void }) => {
     }
   };
 
+  useEffect(() => {
+    const fetchDevices = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/get-all-devices`);
+        if (res.status === 200) {
+          const devicesArray = res.data.devices || [];
+          setItems(devicesArray.map((d: any) => ({ label: d.device_name, value: d._id })));
+
+        }
+        console.log(res.data);
+      } catch (err) {
+        console.log('Error fetching devices', err);
+      }
+    };
+    fetchDevices();
+  }, []);
+  console.log("Dropdown items:", items);
+
   return (
-    <ScrollView style={styles.container}>
+    <KeyboardAwareScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+      <ThreeButtons></ThreeButtons>
       <Text style={styles.label}>User ID</Text>
       <TextInput style={styles.input} value={userId} onChangeText={setUserId} />
 
@@ -97,10 +118,81 @@ const EnergyForm = ({ onClose }: { onClose?: () => void }) => {
 
       {type === "electricity" && (
         <>
-          <Text style={styles.label}>Device ID (optional)</Text>
-          <TextInput style={styles.input} value={deviceId} onChangeText={setDeviceId} />
+          <Text style={styles.label}>Select Device (optional)</Text>
+<DropDownPicker
+  open={open}
+  value={value}
+  items={items}
+  setOpen={setOpen}
+  setValue={setValue}
+  setItems={setItems}
+  placeholder="Select a device"
+  containerStyle={{ 
+    marginBottom: 10, 
+    height: 40,
+  }}
+  style={{
+    backgroundColor: "#ffffff",
+    borderColor: "#ccc",
+    borderWidth: 1,
+  }}
+  textStyle={{
+    fontSize: 16,
+    color: "#000000",
+  }}
+  dropDownContainerStyle={{
+    backgroundColor: "#ffffff",
+    borderColor: "#ccc",
+    borderWidth: 1,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  }}
+  listItemContainerStyle={{
+    height: 50,
+    justifyContent: "center",
+    paddingHorizontal: 10,
+    backgroundColor: "#ffffff",
+  }}
+  listItemLabelStyle={{
+    color: "#000000",
+    fontSize: 16,
+    fontWeight: "400",
+  }}
+  selectedItemContainerStyle={{
+    backgroundColor: "#e8e8e8",
+  }}
+  selectedItemLabelStyle={{
+    color: "#000000",
+    fontWeight: "bold",
+    fontSize: 16,
+  }}
+  placeholderStyle={{
+    color: "#666666",
+    fontSize: 16,
+  }}
+  arrowIconStyle={{
+    width: 20,
+    height: 20,
+  }}
+  tickIconStyle={{
+    width: 20,
+    height: 20,
+  }}
+  zIndex={5000}
+  zIndexInverse={6000}
+  listMode="SCROLLVIEW"
+  scrollViewProps={{
+    nestedScrollEnabled: true,
+  }}
+/>
+
+
           <Text style={styles.label}>Watts</Text>
           <TextInput style={styles.input} keyboardType="numeric" value={watts} onChangeText={setWatts} />
+
           <Text style={styles.label}>Hours per Day</Text>
           <TextInput style={styles.input} keyboardType="numeric" value={hoursPerDay} onChangeText={setHoursPerDay} />
         </>
@@ -138,31 +230,21 @@ const EnergyForm = ({ onClose }: { onClose?: () => void }) => {
       )}
 
       <Button title={loading ? "Submitting..." : "Submit"} onPress={handleSubmit} disabled={loading} />
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { padding: 20 },
-  label: { marginTop: 15, fontWeight: "bold", color: "#333" }, // label color
+  label: { marginTop: 15, fontWeight: "bold", color: "#333" },
   input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    padding: 10,
-    marginTop: 5,
-    borderRadius: 5,
-    color: "#000", // input text color
-    backgroundColor: "#fff" // optional: makes input background white
+    borderWidth: 1, borderColor: "#ccc", padding: 10, marginTop: 5,
+    borderRadius: 5, color: "#000", backgroundColor: "#fff"
   },
   picker: {
-    color: "#000", // picker text color
-    backgroundColor: "#fff", // picker background
-    marginTop: 5,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5
+    color: "#000", backgroundColor: "#fff", marginTop: 5,
+    borderWidth: 1, borderColor: "#ccc", borderRadius: 5
   }
 });
-
 
 export default EnergyForm;
