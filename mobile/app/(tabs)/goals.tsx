@@ -6,8 +6,53 @@ import { ThemedText } from '../../components/ThemedText';
 import { Goal } from '../../components/goals/types/goal';
 import MorphingAddGoal from '../../components/goals/MorphingAddGoal';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import messaging from '@react-native-firebase/messaging';
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+import { initializeApp } from 'firebase/app';
 
 const BASE_URL = 'http://192.168.8.111:5000/api/goals'; // replace with PC's LAN IP
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "your-app.firebaseapp.com",
+  projectId: "greenmeter-goal-notifications",   // <-- REQUIRED
+  storageBucket: "your-app.appspot.com",
+  messagingSenderId: "SENDER_ID",
+  appId: "APP_ID",
+};
+
+const app = initializeApp(firebaseConfig);
+
+async function registerForNotifications() {
+  if (!Device.isDevice) {
+    Alert.alert('Error', 'Push notifications only work on a real device!');
+    return;
+  }
+
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+
+  if (finalStatus !== 'granted') {
+    Alert.alert('Failed', 'Permission not granted for notifications.');
+    return;
+  }
+
+  const token = (await Notifications.getExpoPushTokenAsync()).data;
+  console.log('Expo Push Token:', token);
+  Alert.alert('Expo Push Token', token);
+}
+
+
+// Call it inside useEffect
+useEffect(() => {
+  registerForNotifications();
+}, []);
+
 
 export default function GoalsIndex() {
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -85,11 +130,11 @@ const openEditModal = (goal: Goal) => {
   setCurrentGoal(goal);
   setEditTitle(goal.title);
   setEditNotes(goal.notes || '');
-  setEditPriority(goal.priority);
-  setEditFrequency(goal.timeFrequency);
+  setEditPriority(goal.priority ?? 'Medium');
+  setEditFrequency(goal.timeFrequency ?? 'Daily');
   setEditDevices(goal.devices || []);
   setEditDate(new Date(goal.date));
-  const [hour, minute] = goal.time.split(':').map(Number);
+  const [hour, minute] = (goal.time ?? '00:00').split(':').map(Number);
   const time = new Date();
   time.setHours(hour, minute);
   setEditTime(time);
@@ -153,14 +198,14 @@ const saveEdit = async () => {
   };
 
   // Priority color helper
-  const getPriorityColor = (priority: 'low' | 'medium' | 'high') => {
-    switch (priority) {
-      case 'low': return '#4CAF50';
-      case 'medium': return '#FFC107';
-      case 'high': return '#F44336';
-      default: return '#888';
-    }
-  };
+  const getPriorityColor = (priority?: 'Low' | 'Medium' | 'High') => {
+  switch (priority?.toLowerCase()) {
+    case 'low': return '#4CAF50';
+    case 'medium': return '#FFC107';
+    case 'high': return '#F44336';
+    default: return '#888';
+  }
+};
 
   if (loading) {
     return (
@@ -186,10 +231,6 @@ const saveEdit = async () => {
     console.error('Error updating status:', err);
   }
 };
-
-
-
-
 
   return (
     <ThemedView style={styles.container}>
@@ -348,7 +389,7 @@ const saveEdit = async () => {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#ecf6edff', marginTop: 50,},
+  container: { flex: 1, padding: 16, backgroundColor: '#ecf6edff',},
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 12, fontSize: 16, color: '#4CAF50' },
   filterRow: { flexDirection: 'row', justifyContent: 'space-around', marginVertical: 12 },

@@ -84,7 +84,7 @@ export default function MorphingAddGoal({ onAddGoal }: MorphingAddGoalProps) {
   const widthAnim = animation.interpolate({ inputRange: [0, 1], outputRange: [60, width] });
   const heightAnim = animation.interpolate({ inputRange: [0, 1], outputRange: [60, height] });
   const borderRadiusAnim = animation.interpolate({ inputRange: [0, 1], outputRange: [30, 0] });
-  const topAnim = animation.interpolate({ inputRange: [0, 1], outputRange: [height - 200, 0] });
+  const topAnim = animation.interpolate({ inputRange: [0, 1], outputRange: [height - 250, 0] });
   const leftAnim = animation.interpolate({ inputRange: [0, 1], outputRange: [width - 80, 0] });
 
   // Device selection
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: '#edf7ee',
-    marginBottom: 120,
+    marginBottom: 170,
     borderRadius: 16,
     justifyContent: 'space-between',
     shadowColor: '#000',
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#cfe8d5',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 15,
     elevation: 3,
     padding: 12,
   },

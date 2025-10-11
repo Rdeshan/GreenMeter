@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View, TouchableOpacity  } from 'react-native';
 
 import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
@@ -13,35 +13,22 @@ export default function TabLayout() {
 
   return (
     <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: '#16a34a',
-        tabBarInactiveTintColor: '#94a3b8',
-        headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-         tabBarIconStyle: {
-          marginTop: 8, 
-        },
-        tabBarStyle: Platform.select({
-          ios: {
-            position: 'absolute',
-            backgroundColor: '#ffffff',
-            borderTopWidth: 0,
-            elevation: 0,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: -2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 8,
-            height: 80
-          },
-          default: {
-            backgroundColor: '#ffffff',
-            borderTopWidth: 0,
-            elevation: 8,
-            height: 70,
-          },
-        }),
-      }}>
+      screenOptions={({ navigation }) => ({
+    tabBarActiveTintColor: '#16a34a',
+    tabBarInactiveTintColor: '#94a3b8',
+    headerShown: true, // enable header
+    headerRight: () => (
+      <TouchableOpacity
+        style={{ marginRight: 16 }}
+        onPress={() => navigation.navigate('profile')}
+      >
+        <IconSymbol name="person.fill" size={28} color="#16a34a" />
+      </TouchableOpacity>
+    ),
+    tabBarButton: HapticTab,
+    tabBarBackground: TabBarBackground,
+    tabBarIconStyle: { marginTop: 8 },
+  })}>
       <Tabs.Screen
         name="index"
         options={{
@@ -83,14 +70,6 @@ export default function TabLayout() {
           tabBarShowLabel: false,
           title: 'Cost',
           tabBarIcon: ({ color }) => <IconSymbol size={30} name="dollarsign.circle.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          tabBarShowLabel: false,
-          title: 'Profile',
-          tabBarIcon: ({ color }) => <IconSymbol size={30} name="person.fill" color={color} />,
         }}
       />
       <Tabs.Screen

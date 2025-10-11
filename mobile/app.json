@@ -9,8 +9,12 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
+      "bundleIdentifier": "com.yourapp.identifier",
       "supportsTablet": true,
-      "bundleIdentifier": "com.nirmalperera.mobile"
+      "infoPlist": {
+        "NSUserTrackingUsageDescription": "This app uses notifications to keep you updated.",
+        "UIBackgroundModes": ["remote-notification"]
+      }
     },
     "android": {
       "adaptiveIcon": {

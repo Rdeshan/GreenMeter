@@ -2,6 +2,19 @@
   "dependencies": {
     "@react-native-community/datetimepicker": "^8.4.5",
     "@react-native-firebase/app": "^23.4.0",
-    "@react-native-firebase/messaging": "^23.4.0"
+    "@react-native-firebase/messaging": "^23.4.0",
+    "expo": "^54.0.13",
+    "expo-notifications": "^0.32.12",
+    "react": "19.1.0",
+    "react-native": "0.81.4"
+  },
+  "devDependencies": {
+    "@react-native-community/cli": "^20.0.2"
+  },
+  "name": "GreenMeter",
+  "version": "1.0.0",
+  "scripts": {
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   }
 }

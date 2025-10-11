@@ -1,4 +1,4 @@
-package com.nirmalperera.mobile
+package com.anonymous.greenmeter
 
 import android.app.Application
 import android.content.res.Configuration
