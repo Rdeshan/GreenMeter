@@ -3,8 +3,9 @@ import { View, Platform, Text, TextInput, Button, Alert, StyleSheet } from "reac
 import { Picker } from '@react-native-picker/picker';
 import Constants from 'expo-constants';
 import axios from "axios";
-import ThreeButtons from "@/components/CostThreeButtons/threeButtonsCost"
+import ThreeButtons from "@/app/threeButtonsCost"
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { router } from 'expo-router';
 
 import DropDownPicker from 'react-native-dropdown-picker';
 
@@ -39,6 +40,8 @@ const EnergyForm = ({ onClose }: { onClose?: () => void }) => {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState<string | null>(null);
   const [items, setItems] = useState<{ label: string, value: string }[]>([]);
+
+
 
   const handleSubmit = async () => {
     let payload: any = { userId, type };
@@ -117,7 +120,7 @@ useEffect(() => {
 
   return (
     <KeyboardAwareScrollView style={styles.container} keyboardShouldPersistTaps="handled">
-      <ThreeButtons></ThreeButtons>
+       <Button title="Go to Report" onPress={() => router.push('/threeButtonsCost')} />
       <Text style={styles.label}>User ID</Text>
       <TextInput style={styles.input} value={userId} onChangeText={setUserId} />
 
@@ -254,7 +257,7 @@ useEffect(() => {
 };
 
 const styles = StyleSheet.create({
-  container: { padding: 20 },
+  container: { padding: 20 ,marginTop:200},
   label: { marginTop: 15, fontWeight: "bold", color: "#333" },
   input: {
     borderWidth: 1, borderColor: "#ccc", padding: 10, marginTop: 5,
