@@ -27,6 +27,7 @@ const API_BASE = (() => {
 const EnergyForm = ({ onClose }: { onClose?: () => void }) => {
   const [type, setType] = useState("electricity");
   const [userId, setUserId] = useState("");
+  const [devices, setDevices] = useState<any[]>([]);
   const [watts, setWatts] = useState("");
   const [hoursPerDay, setHoursPerDay] = useState("");
   const [fuelType, setFuelType] = useState("petrol");
@@ -86,22 +87,33 @@ const EnergyForm = ({ onClose }: { onClose?: () => void }) => {
   };
 
   useEffect(() => {
-    const fetchDevices = async () => {
-      try {
-        const res = await axios.get(`${API_BASE}/get-all-devices`);
-        if (res.status === 200) {
-          const devicesArray = res.data.devices || [];
-          setItems(devicesArray.map((d: any) => ({ label: d.device_name, value: d._id })));
-
-        }
-        console.log(res.data);
-      } catch (err) {
-        console.log('Error fetching devices', err);
+  const fetchDevices = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/get-all-devices`);
+      if (res.status === 200) {
+        const devicesArray = res.data.devices || [];
+        setDevices(devicesArray); // ✅ store full data
+        setItems(devicesArray.map((d: any) => ({
+          label: d.device_name,
+          value: d._id
+        })));
       }
-    };
-    fetchDevices();
-  }, []);
-  console.log("Dropdown items:", items);
+    } catch (err) {
+      console.log('Error fetching devices', err);
+    }
+  };
+  fetchDevices();
+}, []);
+
+useEffect(() => {
+  if (value) {
+    const selectedDevice = devices.find((d) => d._id === value);
+    if (selectedDevice) {
+      setWatts(String(selectedDevice.consumption || "")); // ✅ auto-fill watts
+    }
+  }
+}, [value, devices]);
+
 
   return (
     <KeyboardAwareScrollView style={styles.container} keyboardShouldPersistTaps="handled">
@@ -191,7 +203,14 @@ const EnergyForm = ({ onClose }: { onClose?: () => void }) => {
 
 
           <Text style={styles.label}>Watts</Text>
-          <TextInput style={styles.input} keyboardType="numeric" value={watts} onChangeText={setWatts} />
+          <TextInput
+  style={styles.input}
+  keyboardType="numeric"
+  value={watts}
+  onChangeText={setWatts}
+  editable={!value} // disable typing if a device selected
+/>
+
 
           <Text style={styles.label}>Hours per Day</Text>
           <TextInput style={styles.input} keyboardType="numeric" value={hoursPerDay} onChangeText={setHoursPerDay} />
