@@ -3,7 +3,7 @@ import React from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-
+import { router } from 'expo-router';
 
 interface ConsumptionRecord {
     id: string;
@@ -30,6 +30,7 @@ interface ConsumptionRecordCardProps {
 }
 
 export default function ConsumptionRecordCard({ record, device, onEdit, onDelete }: ConsumptionRecordCardProps) {
+
     const getDeviceIcon = (deviceName: string): string => {
         const name = deviceName.toLowerCase();
         if (name.includes('bulb') || name.includes('light')) return '💡';
@@ -42,6 +43,7 @@ export default function ConsumptionRecordCard({ record, device, onEdit, onDelete
     };
 
     return (
+        <TouchableOpacity onPress={() => router.push(`/consumption-detail/${record.id}` as any)}>
         <ThemedView style={styles.recordCard}>
             <ThemedView style={styles.recordHeader}>
                 <ThemedView style={styles.deviceIcon}>
@@ -85,6 +87,7 @@ export default function ConsumptionRecordCard({ record, device, onEdit, onDelete
                 </ThemedView>
             </ThemedView>
         </ThemedView>
+        </TouchableOpacity>
     );
 }
 

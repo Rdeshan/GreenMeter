@@ -66,9 +66,9 @@ type ConsumptionInput = {
 }
 
 const API_BASE = (() => {
-  const defaultHost = '192.168.177.176' // replace with your PC IP when testing on device
+  const defaultHost = '192.168.233.176' // replace with your PC IP when testing on device
   if (Platform?.OS === 'android') {
-    return `http://192.168.177.176:5000/api` //10.0.2.2:5000
+    return `http://192.168.233.176:5000/api` //10.0.2.2:5000
   }
   return `http://${defaultHost}:5000/api`
 })()
@@ -113,7 +113,6 @@ export default function Consumptions () {
       )
       const consumptionsList: ConsumptionItemResponse[] = res.data?.data || []
 
-      console.log(consumptionsList)
       setConsumptionRecords(consumptionsList)
     } catch (err) {
       console.log('Fetch consumptions error', err)
