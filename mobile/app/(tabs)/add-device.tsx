@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from "react";
 import {View,  Text,  TouchableOpacity,  StyleSheet,  FlatList,  SafeAreaView,  Animated,  Dimensions,  Alert,  Modal,TextInput,ActivityIndicator,
-  Platform,
+  Platform,RefreshControl 
 } from "react-native";
 import axios from "axios";
 import { useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from "../../components/device_management/All_Styles"
-import styles2 from "../../components/device_management/styleSheet_index"
 import EnergyToggle from "@/components/device_management/display_home/EnergyToggle";
 import EnergyIndicator from "@/components/device_management/display_home/EnergyIndicator"
 import { DeviceItem } from "@/components/device_management/display_home/type/DeviceItem";
 import EditDeviceModal from "@/components/device_management/display_home/Edit_Modal"
 import  SearchBar  from "@/components/device_management/display_home/SearchBar";
+import FloatingButton from "@/components/device_management/display_home/type/FloatingButton";
+import BottomSheet from "@/components/device_management/display_home/BottomSheet";
+import ManualAddScreen from "../manual_add";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -23,17 +25,28 @@ const API_BASE = (() => {
 
 export default function HomeScreen() {
   const [devices, setDevices] = useState<DeviceItem[]>([]);
-  const [filteredDevices, setFilteredDevices] = useState<DeviceItem[]>([]);
-  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [filteredDevices, setFilteredDevices] = useState<DeviceItem[]>([]);
+const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<DeviceItem | null>(null);
   const [saving, setSaving] = useState(false);
+  const [visible, setVisible] = useState<boolean>(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchDevices();
-    }, [])
-  );
+
+    const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchDevices();
+    setRefreshing(false);
+  };
+
+ useFocusEffect(
+  useCallback(() => {
+    fetchDevices();
+  }, [])
+);
+
+
   useEffect(() => {
   if (search.trim() === "") {
     setFilteredDevices(devices);
@@ -64,6 +77,30 @@ export default function HomeScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDelete = (device: DeviceItem) => {
+    Alert.alert(
+      "Delete Device",
+      `Are you sure to delete "${device.device_name}"?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              
+              await axios.delete(`${API_BASE}/delete-device/${device._id}`);
+              setDevices((prev) => prev.filter((d) => d._id !== device._id));
+            } catch (err) {
+              console.log("Delete error", err);
+              Alert.alert("Error", "Failed to delete device");
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleEditOpen = (device: DeviceItem) => {
@@ -161,22 +198,34 @@ export default function HomeScreen() {
               isOn={isOn}
               onToggle={() => handleToggleState(item)}
             />
-          
+            
           </View>
         </View>
 
         <View style={styles.energyStats}>
-          <EnergyIndicator consumption={item.consumption} isOn={isOn} />
+         
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Text style={styles.statLabel}>Type</Text>
               <Text style={styles.statValue}>{item.type || 'Electric'}</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Location</Text>
-              <Text style={styles.statValue}>{item.location}</Text>
+              <Text style={styles.statLabel}>Power</Text>
+              <Text style={styles.statValue}>{item.consumption || 0}W</Text>
             </View>
-           
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => handleEditOpen(item)}
+            >
+              <Text style={styles.editText}>✏️</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => handleDelete(item)}
+            >
+              <Text style={styles.deleteText}>🗑️</Text>
+            </TouchableOpacity>
+       
           </View>
         </View>
 
@@ -185,6 +234,8 @@ export default function HomeScreen() {
             <Text style={styles.activeText}>● ACTIVE</Text>
           </View>
         )}
+        
+        
       </View>
     );
   };
@@ -192,36 +243,13 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>🌱 GreenMeter</Text>
-        <Text style={styles.subtitle}>Smart Energy Management</Text>
-        
-      </View>
+    
      
 
       {/* Energy Overview */}
-      <View style={styles.overviewCard}>
-        <View style={styles.overviewRow}>
-          <View style={styles.overviewItem}>
-            <Text style={styles.overviewNumber}>{}</Text>
-            <Text style={styles.overviewLabel}>All devices</Text>
-          </View>
-          <View style={styles.overviewDivider} />
-          <View style={styles.overviewItem}>
-            <Text style={styles.overviewNumber}>{totalActiveDevices}</Text>
-            <Text style={styles.overviewLabel}>Active Devices</Text>
-          </View>
-          <View style={styles.overviewDivider} />
-          <View style={styles.overviewItem}>
-            <Text style={styles.currentUsageNumber}>{totalPowerConsumption}
-              <Text style={styles.overviewNumber}>W</Text>
-            </Text>
-            <Text style={styles.overviewLabel}>Current Usage</Text>
-          </View>
-        </View>
-      </View>
+     
        <View>
-       <SearchBar search={search} setSearch={setSearch} />
+        <SearchBar search={search} setSearch={setSearch} />
 
       </View>
 
@@ -235,19 +263,29 @@ export default function HomeScreen() {
           data={filteredDevices}
           keyExtractor={(it) => it._id}
           renderItem={renderItem}
-          numColumns={2}
-          columnWrapperStyle={styles2.columnWrapper} 
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyIcon}>📱</Text>
               <Text style={styles.emptyTitle}>No devices found</Text>
-              <Text style={styles.emptySubtitle}>Add your first device to get started</Text>
+              <Text style={styles.emptySubtitle}>
+                Add your first device to get started
+                </Text>
             </View>
+            
           }
+           refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         />
       )}
+        
+      <FloatingButton onPress={() => setVisible(true)} />
+
+      <BottomSheet visible={visible} onClose={() => setVisible(false)}>
+        <ManualAddScreen onClose={() => setVisible(false)} />
+      </BottomSheet>
 
       {/* Edit Modal */}
       <Modal
