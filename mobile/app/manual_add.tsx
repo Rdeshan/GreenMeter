@@ -15,7 +15,7 @@ import {
   Dimensions,
 } from 'react-native';
 import Constants from 'expo-constants';
-import eco_image from '../assets/images/clean_energy.png'
+// import eco_image from '../assets/images/clean_energy.png'
 import styles from '@/components/device_management/display_home/styles_manual_add'
 import { useRouter } from 'expo-router'; // <-- added
 
@@ -254,7 +254,7 @@ const AIButton = ({ onPress }: { onPress: () => void }) => {
             <View style={styles.aiIcon}>
               <Text style={styles.aiIconText}>✨</Text>
             </View>
-            <Text style={styles.aiButtonText}>Add device with AI</Text>
+            <Text style={styles.aiButtonText}>Add device with Voice</Text>
             <View style={styles.aiAccent} />
           </View>
         </TouchableOpacity>
@@ -269,7 +269,7 @@ const getBackendUrl = () => {
     const hostFromExpo =
       (Constants.manifest as any)?.debuggerHost?.split(':')[0] ||
       (Constants.expoConfig as any)?.hostUri?.split(':')[0];
-    const host = hostFromExpo || '192.168.8.194';
+    const host = hostFromExpo || '192.168.115.65';
     return `http://${host}:5000/api/devices`;
   }
   return 'https:///192.168.8.194:5000/api/devices';
@@ -328,6 +328,8 @@ const ManualAddScreen: React.FC<ManualAddScreenProps> = ({ onClose }) => {
     };
 
     setLoading(true);
+
+  
     try {
       const res = await fetch(getBackendUrl(), {
         method: 'POST',
