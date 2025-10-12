@@ -5,6 +5,7 @@ import authRoutes from './routes/auth.routes';
 import deviceRoutes from './routes/device_route';   
 import energyCostRoutes from './routes/energyCost.routes';
 import consumptionRoutes from './routes/consumption.routes'
+import goalRoutes from './routes/goal.routes'; 
 
 
 
@@ -18,6 +19,7 @@ app.use(express.json());
 // Routes
 app.use('/api/consumptions', consumptionRoutes)
 app.use('/api', deviceRoutes)
+app.use('/api/goals', goalRoutes);
 
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({
