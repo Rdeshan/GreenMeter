@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
+import authRoutes from './routes/auth.routes'
 import consumptionRoutes from './routes/consumption.routes'
 import deviceRoutes from './routes/device_route'
 
@@ -12,6 +13,8 @@ app.use(helmet())
 app.use(express.json())
 
 // Routes
+
+app.use('/api/auth', authRoutes);
 app.use('/api/consumptions', consumptionRoutes)
 app.use('/api', deviceRoutes)
 

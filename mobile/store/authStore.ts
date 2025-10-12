@@ -1,15 +1,24 @@
 import { create } from 'zustand';
 
-interface User {
-  id: string;
+export interface ApiUser {
+  name: string;
   email: string;
-  username: string;
+  password: string;     // hashed; present in response
+  provider: string;
+  _id: string;
+  createdAt: string;    // ISO date
+  updatedAt: string;    // ISO date
+  __v: number;
+}
+
+export interface AuthResponse {
+  user: ApiUser;
   token: string;
 }
 
 interface AuthState {
-  user: User | null;
-  setUser: (user: User | null) => void;
+  user: AuthResponse | null;
+  setUser: (user: AuthResponse | null) => void;
   logout: () => void;
 }
 

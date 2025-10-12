@@ -4,8 +4,10 @@ import Device, { IDevice } from '../models/Device'
 import AiGenerate from '../config/gemini.config.js'
 
 // Create consumption record
-export const addConsumptionController = async (req: Request, res: Response) => {
+export const addConsumptionController = async (req: any, res: Response) => {
   try {
+    const userId = req.userId
+
     const { deviceId, hours, minutes } = req.body
 
     const device = await Device.findById<IDevice>(deviceId)
@@ -16,6 +18,7 @@ export const addConsumptionController = async (req: Request, res: Response) => {
     }
 
     const consumption = new Consumption({
+      user: userId,
       device: deviceId,
       hours,
       minutes
@@ -56,13 +59,10 @@ export const addConsumptionController = async (req: Request, res: Response) => {
 }
 
 // Get all consumptions
-export const getAllConsumptionsController = async (
-  req: Request,
-  res: Response
-) => {
+export const getAllConsumptionsController = async (req: any, res: Response) => {
   try {
-    const consumptions = await Consumption.find()
-      .select('-recommendations -summary')
+    const consumptions = await Consumption.find({ user: req.userId })
+      .select('-user -recommendations -summary')
       .populate('device')
       .sort({ createdAt: -1 })
 
@@ -79,7 +79,9 @@ export const getConsumptionByIdController = async (
 ) => {
   try {
     const { id } = req.params
-    const consumption = await Consumption.findById(id).populate('device')
+    const consumption = await Consumption.findById(id)
+      .select('-user')
+      .populate('device')
 
     if (!consumption) {
       return res
@@ -100,8 +102,38 @@ export const editConsumptionController = async (
 ) => {
   try {
     const { id } = req.params
-    const updateData = req.body
+    const { deviceId, hours, minutes } = req.body
 
+    const device = await Device.findById<IDevice>(deviceId)
+    if (!device) {
+      return res
+        .status(409)
+        .json({ success: false, message: 'No devices found' })
+    }
+
+    const aiReqData = {
+      device_name: device.device_name,
+      consumption: device.consumption,
+      hours,
+      minutes
+    }
+    const responseFromAI = await AiGenerate(
+      'consumption_recommendation',
+      aiReqData
+    )
+
+    const recommendations = responseFromAI?.recommendations || null
+    const summary = responseFromAI?.summary || ''
+
+    const updateData : any= {
+      hours,
+      minutes,
+      device: deviceId
+    }
+    if (recommendations || summary) {
+      updateData.recommendations = recommendations
+      updateData.summary = summary
+    }
     const consumption = await Consumption.findByIdAndUpdate(id, updateData, {
       new: true
     })
