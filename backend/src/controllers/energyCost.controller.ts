@@ -1,126 +1,308 @@
 import { Request, Response } from 'express';
-import * as energyCostService from '../services/energyCost.services';
-import { IEnergyCost } from '../models/energyCost.model';
+import { EnergyCost } from '../models/energyCost.model';
+import Device from '../models/Device';
 
-const validateEnergyRecord = (data: Partial<IEnergyCost>): string | null => {
-  if (!data.type || !['gas', 'electricity', 'solar'].includes(data.type)) {
-    return 'Valid type (gas/electricity/solar) is required';
-  }
-
-  if (!data.date) {
-    return 'Date is required';
-  }
-
-  if (data.type === 'gas') {
-    if (!data.fuelType || !['petrol', 'diesel', 'lpg', 'kerosene'].includes(data.fuelType)) {
-      return 'Valid fuel type (petrol/diesel/lpg/kerosene) is required for gas type';
+const PRICING = {
+    electricity: {
+        domestic: [
+            { limit: 30, rate: 7.85 },
+            { limit: 60, rate: 10.00 },
+            { limit: 90, rate: 27.75 },
+            { limit: 120, rate: 32.00 },
+            { limit: 180, rate: 45.00 },
+            { limit: Infinity, rate: 50.00 }
+        ],
+        flat: 35.00
+    },
+    gas: {
+        petrol: { petrol92: 299.00, petrol95: 356.00 },
+        diesel: 320.00,
+        kerosene: 180.00,
+        lpg: { '12.5kg': 4850.00, '5kg': 1940.00, '2.5kg': 893.00 }
+    },
+    solar: {
+        exportRate: 22.00,
+        selfConsumptionSaving: 35.00
     }
-    if (data.fuelType === 'lpg') {
-      if (!data.gasTankSize || ![5, 8, 12.5].includes(data.gasTankSize)) {
-        return 'Valid gas tank size (5/8/12.5) is required for LPG';
-      }
-    } else {
-      if (!data.liters || data.liters <= 0) {
-        return 'Valid liters amount is required for petrol/diesel/kerosene';
-      }
-    }
-  } else if (data.type === 'electricity') {
-    if (!data.electricDeviceType) {
-      return 'Electric device type is required';
-    }
-    if (!data.powerRatingWatts || data.powerRatingWatts <= 0) {
-      return 'Valid power rating in watts is required';
-    }
-    if (!data.usageHoursPerDay || data.usageHoursPerDay <= 0) {
-      return 'Valid usage hours per day is required';
-    }
-  } else if (data.type === 'solar') {
-    if (data.costCalculationMethod !== 'manual') {
-      return 'Solar type only supports manual cost calculation';
-    }
-    if (!data.cost || data.cost < 0) {
-      return 'Valid cost is required for manual calculation';
-    }
-  }
-
-  return null;
 };
 
-export const addCost = async (req: Request, res: Response) => {
-  try {
-    const costData = {
-      ...req.body,
-      costCalculationMethod: req.body.type === 'solar' ? 'manual' : (req.body.costCalculationMethod || 'auto')
-    };
+class EnergyController {
 
-    const validationError = validateEnergyRecord(costData);
-    if (validationError) {
-      return res.status(400).json({ error: validationError });
+    // ---------- Helper: Tiered Electricity Cost ----------
+    private static calculateElectricityCost(kWh: number, useTiered = true): number {
+        if (!useTiered) return kWh * PRICING.electricity.flat;
+
+        let cost = 0, remainingUnits = kWh, previousLimit = 0;
+        for (const tier of PRICING.electricity.domestic) {
+            if (remainingUnits <= 0) break;
+            const tierUnits = Math.min(remainingUnits, tier.limit - previousLimit);
+            cost += tierUnits * tier.rate;
+            remainingUnits -= tierUnits;
+            previousLimit = tier.limit;
+        }
+        return cost;
     }
 
-    const record = await energyCostService.createCost(costData);
-    res.status(201).json(record);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
-  }
-};
+    // ---------- Helper: Universal Cost Calculator ----------
+    private static calculateCost(data: any): number {
+        switch (data.type) {
+            case 'electricity':
+                if (data.watts && data.hoursPerDay) {
+                    const dailyKWh = (data.watts * data.hoursPerDay) / 1000;
+                    const monthlyKWh = dailyKWh * 30;
+                    return this.calculateElectricityCost(monthlyKWh);
+                } else if (data.monthlyKWh) {
+                    return this.calculateElectricityCost(data.monthlyKWh);
+                }
+                return 0;
 
-export const getCostRecords = async (req: Request, res: Response) => {
-  try {
-    const { type, fuelType, electricDeviceType, from, to } = req.query;
+            case 'gas':
+                if (data.fuelType === 'lpg' && data.tankSize) {
+                    const tankKey = data.tankSize as keyof typeof PRICING.gas.lpg;
+                    const cylinderCost = PRICING.gas.lpg[tankKey] ?? 0;
+                    const quantity = Number(data.quantity) || 1;
+                    return cylinderCost * quantity;
 
-    const records = await energyCostService.getCosts({
-      type: type as string,
-      fuelType: fuelType as string,
-      electricDeviceType: electricDeviceType as string,
-      from: from ? new Date(from as string) : undefined,
-      to: to ? new Date(to as string) : undefined
-    });
-    res.json(records);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
-  }
-};
+                } else if (data.fuelType === 'petrol' && data.liters) {
+                    const petrolKey = (data.petrolType || 'petrol92') as keyof typeof PRICING.gas.petrol;
+                    const price = PRICING.gas.petrol[petrolKey];
+                    return data.liters * price;
 
-export const updateCostRecord = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
+                } else if (data.liters && data.fuelType in PRICING.gas) {
+                    const fuelKey = data.fuelType as keyof typeof PRICING.gas;
+                    const price = PRICING.gas[fuelKey] as number;
+                    return data.liters * price;
+                }
+                return 0;
 
-    const validationError = validateEnergyRecord({ ...req.body });
-    if (validationError) {
-      return res.status(400).json({ error: validationError });
+            case 'solar':
+                if (data.kWhGenerated) {
+                    const selfConsumed = data.kWhSelfConsumed || data.kWhGenerated * 0.7;
+                    const exported = data.kWhGenerated - selfConsumed;
+                    const savings = (selfConsumed * PRICING.solar.selfConsumptionSaving) +
+                                    (exported * PRICING.solar.exportRate);
+                    return -savings;
+                } else if (data.solarSavings) {
+                    return -Number(data.solarSavings);
+                }
+                return 0;
+
+            default:
+                return 0;
+        }
     }
 
-    const updated = await energyCostService.updateCost(id, req.body);
-    if (!updated) return res.status(404).json({ error: 'Record not found' });
-    res.json(updated);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
-  }
-};
+    // ---------- Create ----------
+    async create(req: Request, res: Response) {
+        try {
+            const { userId, type, deviceId, ...otherData } = req.body;
 
-export const deleteCostRecord = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
+            let watts: number | undefined;
+            if (deviceId) {
+                const device = await Device.findById(deviceId);
+                if (!device) {
+                    return res.status(404).json({ success: false, message: 'Device not found' });
+                }
+                watts = device.consumption || 0; // Auto-get watts from Device model
+            }
 
-    const deleted = await energyCostService.deleteCost(id);
-    if (!deleted) return res.status(404).json({ error: 'Record not found' });
-    res.json({ message: 'Deleted successfully' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
-  }
-};
+            const totalCost = EnergyController.calculateCost({ type, watts, ...otherData });
+            if (isNaN(totalCost)) {
+                return res.status(400).json({ success: false, message: 'Invalid cost calculation' });
+            }
 
-export const getSummary = async (req: Request, res: Response) => {
-  try {    
-    const summary = await energyCostService.getCostSummary();
-    res.json(summary);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
-  }
-};
+            let dailyKWh, monthlyKWh;
+            if (type === 'electricity' && watts && otherData.hoursPerDay) {
+                dailyKWh = (watts * otherData.hoursPerDay) / 1000;
+                monthlyKWh = dailyKWh * 30;
+            }
+
+            const newEnergyCost = new EnergyCost({
+                userId,
+                type,
+                deviceId,
+                watts,
+                totalCost: Math.round(totalCost * 100) / 100,
+                dailyKWh,
+                monthlyKWh,
+                ...otherData
+            });
+
+            const saved = await newEnergyCost.save();
+            res.status(201).json({
+                success: true,
+                message: 'Energy cost created successfully',
+                data: saved
+            });
+        } catch (error: any) {
+            res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
+    // ---------- Get All ----------
+    async getAll(req: Request, res: Response) {
+        try {
+            const { userId } = req.query;
+            const filter: any = {};
+            if (userId) filter.userId = userId;
+
+            const costs = await EnergyCost.find(filter)
+                .populate('deviceId', 'device_name type location state watts')
+                .sort({ date: -1 });
+
+            const total = costs.reduce((sum, c) => sum + c.totalCost, 0);
+
+            res.status(200).json({
+                success: true,
+                count: costs.length,
+                totalCost: `LKR ${total.toFixed(2)}`,
+                data: costs
+            });
+        } catch (error: any) {
+            res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
+    // ---------- Get by ID ----------
+    async getById(req: Request, res: Response) {
+        try {
+            const { id } = req.params;
+            const cost = await EnergyCost.findById(id)
+                .populate('deviceId', 'device_name type location state watts');
+
+            if (!cost) {
+                return res.status(404).json({ success: false, message: 'Energy cost not found' });
+            }
+
+            res.status(200).json({ success: true, data: cost });
+        } catch (error: any) {
+            res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
+    // ---------- Update ----------
+    async update(req: Request, res: Response) {
+        try {
+            const { id } = req.params;
+            const updateData = req.body;
+
+            let watts: number | undefined;
+            if (updateData.deviceId) {
+                const device = await Device.findById(updateData.deviceId);
+                if (!device) return res.status(404).json({ success: false, message: 'Device not found' });
+                watts = device.consumption;
+                updateData.watts = watts;
+            }
+
+            const existing = await EnergyCost.findById(id);
+            if (!existing) return res.status(404).json({ success: false, message: 'Energy cost not found' });
+
+            const mergedData = { ...existing.toObject(), ...updateData };
+            updateData.totalCost = EnergyController.calculateCost(mergedData);
+            updateData.totalCost = Math.round(updateData.totalCost * 100) / 100;
+
+            if (mergedData.type === 'electricity' && mergedData.watts && mergedData.hoursPerDay) {
+                updateData.dailyKWh = (mergedData.watts * mergedData.hoursPerDay) / 1000;
+                updateData.monthlyKWh = updateData.dailyKWh * 30;
+            }
+
+            const updated = await EnergyCost.findByIdAndUpdate(id, updateData, {
+                new: true,
+                runValidators: true
+            }).populate('deviceId', 'device_name type location state watts');
+
+            res.status(200).json({
+                success: true,
+                message: 'Energy cost updated successfully',
+                data: updated
+            });
+        } catch (error: any) {
+            res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
+    // ---------- Delete ----------
+    async delete(req: Request, res: Response) {
+        try {
+            const { id } = req.params;
+            const deleted = await EnergyCost.findByIdAndDelete(id);
+            if (!deleted) {
+                return res.status(404).json({ success: false, message: 'Energy cost not found' });
+            }
+            res.status(200).json({ success: true, message: 'Energy cost deleted successfully' });
+        } catch (error: any) {
+            res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
+    // ---------- Pricing Info ----------
+    async getPricingInfo(req: Request, res: Response) {
+        try {
+            res.status(200).json({
+                success: true,
+                data: PRICING,
+                message: 'Current pricing information (LKR)'
+            });
+        } catch (error: any) {
+            res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
+    // ---------- Reports ----------
+    private getDateRange(period: "daily" | "weekly" | "monthly") {
+        const now = new Date();
+        let start: Date, end: Date;
+
+        switch (period) {
+            case "daily":
+                start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                end = new Date(start);
+                end.setDate(end.getDate() + 1);
+                break;
+            case "weekly":
+                const first = now.getDate() - now.getDay();
+                start = new Date(now.getFullYear(), now.getMonth(), first);
+                end = new Date(start);
+                end.setDate(end.getDate() + 7);
+                break;
+            case "monthly":
+                start = new Date(now.getFullYear(), now.getMonth(), 1);
+                end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+                break;
+        }
+        return { start, end };
+    }
+
+    private async generateReport(req: Request, res: Response, period: "daily" | "weekly" | "monthly") {
+        try {
+            const { userId } = req.query;
+            const { start, end } = this.getDateRange(period);
+
+            const report = await EnergyCost.aggregate([
+                { $match: { userId, date: { $gte: start, $lt: end } } },
+                { $group: { _id: "$type", totalCost: { $sum: "$totalCost" } } },
+            ]);
+
+            res.status(200).json({
+                success: true,
+                period,
+                dateRange: { start, end },
+                report
+            });
+        } catch {
+            res.status(500).json({ success: false, message: `Failed to generate ${period} report` });
+        }
+    }
+
+    async getDailyReport(req: Request, res: Response) {
+        await this.generateReport(req, res, 'daily');
+    }
+    async getWeeklyReport(req: Request, res: Response) {
+        await this.generateReport(req, res, 'weekly');
+    }
+    async getMonthlyReport(req: Request, res: Response) {
+        await this.generateReport(req, res, 'monthly');
+    }
+}
+
+export const energyController = new EnergyController();

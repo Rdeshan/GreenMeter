@@ -1,601 +1,272 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  FlatList,
-  SafeAreaView,
-  Animated,
-  Dimensions,
-  Switch,
-  Alert,
-} from "react-native";
-import { router } from "expo-router";
+import React, { useState, useEffect } from "react";
+import { View, Platform, Text, TextInput, Button, Alert, StyleSheet } from "react-native";
+import { Picker } from '@react-native-picker/picker';
+import Constants from 'expo-constants';
+import axios from "axios";
+import ThreeButtons from "@/app/threeButtonsCost"
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { router } from 'expo-router';
 
-const { width: screenWidth } = Dimensions.get('window');
+import DropDownPicker from 'react-native-dropdown-picker';
 
-// Device data with energy information
-const initialDevices = [
-  { 
-    id: "1", 
-    name: "Smart Fan", 
-    type: "Electric", 
-    location: "Living Room",
-    consumption: 75, // watts
-    isOn: true,
-    icon: "🌀",
-    dailyUsage: 6.2, // hours
-    monthlyCost: 18.50 // dollars
-  },
-  { 
-    id: "2", 
-    name: "AC Unit", 
-    type: "Electric", 
-    location: "Bedroom",
-    consumption: 1500, // watts
-    isOn: false,
-    icon: "❄️",
-    dailyUsage: 8.5,
-    monthlyCost: 125.80
-  },
-  { 
-    id: "3", 
-    name: "Water Heater", 
-    type: "Electric", 
-    location: "Bathroom",
-    consumption: 3000, // watts
-    isOn: true,
-    icon: "🔥",
-    dailyUsage: 2.3,
-    monthlyCost: 67.20
-  },
-  { 
-    id: "4", 
-    name: "LED Lights", 
-    type: "Electric", 
-    location: "Kitchen",
-    consumption: 12, // watts
-    isOn: true,
-    icon: "💡",
-    dailyUsage: 12.0,
-    monthlyCost: 4.30
-  },
-  { 
-    id: "5", 
-    name: "Washing Machine", 
-    type: "Electric", 
-    location: "Utility Room",
-    consumption: 800, // watts
-    isOn: false,
-    icon: "🧺",
-    dailyUsage: 1.5,
-    monthlyCost: 28.90
-  },
-];
-
-// Custom Toggle Switch Component
-const EnergyToggle = ({ isOn, onToggle, disabled = false }) => {
-  const animatedValue = React.useRef(new Animated.Value(isOn ? 1 : 0)).current;
-
-  React.useEffect(() => {
-    Animated.spring(animatedValue, {
-      toValue: isOn ? 1 : 0,
-      useNativeDriver: false,
-    }).start();
-  }, [isOn]);
-
-  const backgroundColor = animatedValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['#E5E7EB', '#16a34a'],
-  });
-
-  const translateX = animatedValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [2, 22],
-  });
-
-  return (
-    <TouchableOpacity
-      style={[styles.toggleContainer, disabled && styles.toggleDisabled]}
-      onPress={onToggle}
-      disabled={disabled}
-      activeOpacity={0.8}
-    >
-      <Animated.View style={[styles.toggleTrack, { backgroundColor }]}>
-        <Animated.View
-          style={[
-            styles.toggleThumb,
-            {
-              transform: [{ translateX }],
-            },
-          ]}
-        />
-      </Animated.View>
-    </TouchableOpacity>
-  );
+const getBackendUrl = () => {
+  if (__DEV__) {
+    if (Platform.OS === 'android') return 'http://10.0.2.2:5000/api/costs/energy-cost';
+    const hostFromExpo = (Constants.manifest as any)?.debuggerHost?.split(':')[0] || (Constants.expoConfig as any)?.hostUri?.split(':')[0];
+    const host = hostFromExpo || '192.168.115.65';
+    return `http://${host}:5000/api/costs/energy-cost`;
+  }
+  return 'https://192.168.8.194:5000/api/costs/energy-cost';
 };
 
-// Energy Status Indicator
-const EnergyIndicator = ({ consumption, isOn }) => {
-  const getEnergyLevel = () => {
-    if (!isOn) return 'off';
-    if (consumption < 50) return 'low';
-    if (consumption < 500) return 'medium';
-    return 'high';
+const API_BASE = (() => {
+  const defaultHost = "192.168.8.194";
+  if (Platform?.OS === "android") return `http://10.0.2.2:5000/api`;
+  return `http://${defaultHost}:5000/api`;
+})();
+
+const EnergyForm = ({ onClose }: { onClose?: () => void }) => {
+  const [type, setType] = useState("electricity");
+  const [userId, setUserId] = useState("");
+  const [devices, setDevices] = useState<any[]>([]);
+  const [watts, setWatts] = useState("");
+  const [hoursPerDay, setHoursPerDay] = useState("");
+  const [fuelType, setFuelType] = useState("petrol");
+  const [liters, setLiters] = useState("");
+  const [tankSize, setTankSize] = useState("12.5kg");
+  const [solarSavings, setSolarSavings] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState<string | null>(null);
+  const [items, setItems] = useState<{ label: string, value: string }[]>([]);
+
+
+
+  const handleSubmit = async () => {
+    let payload: any = { userId, type };
+    if (value) payload.deviceId = value;
+
+    switch (type) {
+      case "electricity":
+        payload.watts = Number(watts);
+        payload.hoursPerDay = Number(hoursPerDay);
+        break;
+      case "gas":
+        payload.fuelType = fuelType;
+        payload.liters = Number(liters);
+        if (fuelType === "lpg") payload.tankSize = tankSize;
+        break;
+      case "solar":
+        payload.solarSavings = Number(solarSavings);
+        break;
+    }
+
+    try {
+      setLoading(true);
+      const res = await fetch(getBackendUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        await res.json();
+        Alert.alert('Success', 'Energy cost created successfully');
+        setUserId(""); setType("electricity"); setValue(null);
+        setWatts(""); setHoursPerDay(""); setFuelType("petrol");
+        setLiters(""); setTankSize("12.5kg"); setSolarSavings("");
+        onClose && onClose();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        Alert.alert('Error', err.message || `Failed (${res.status})`);
+      }
+    } catch (e) {
+      console.log('Network error', e);
+      Alert.alert('Network', 'Could not reach backend. Check IP/port/CORS.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const level = getEnergyLevel();
-  const colors = {
-    off: '#6B7280',
-    low: '#16a34a',
-    medium: '#F59E0B',
-    high: '#EF4444'
+  useEffect(() => {
+  const fetchDevices = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/get-all-devices`);
+      if (res.status === 200) {
+        const devicesArray = res.data.devices || [];
+        setDevices(devicesArray); // ✅ store full data
+        setItems(devicesArray.map((d: any) => ({
+          label: d.device_name,
+          value: d._id
+        })));
+      }
+    } catch (err) {
+      console.log('Error fetching devices', err);
+    }
   };
+  fetchDevices();
+}, []);
+
+useEffect(() => {
+  if (value) {
+    const selectedDevice = devices.find((d) => d._id === value);
+    if (selectedDevice) {
+      setWatts(String(selectedDevice.consumption || "")); // ✅ auto-fill watts
+    }
+  }
+}, [value, devices]);
+
 
   return (
-    <View style={styles.energyIndicator}>
-      <View style={[styles.energyDot, { backgroundColor: colors[level] }]} />
-      <Text style={[styles.energyText, { color: colors[level] }]}>
-        {isOn ? `${consumption}W` : 'OFF'}
-      </Text>
-    </View>
-  );
-};
+    <KeyboardAwareScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+       <Button title="Go to Report" onPress={() => router.push('/threeButtonsCost')} />
+      <Text style={styles.label}>User ID</Text>
+      <TextInput style={styles.input} value={userId} onChangeText={setUserId} />
 
-// Device Card Component
-const DeviceCard = ({ device, onToggle, onPress, onEdit, onDelete }) => {
-  const cardScale = React.useRef(new Animated.Value(1)).current;
-  const [showActions, setShowActions] = useState(false);
+      <Text style={styles.label}>Type</Text>
+      <Picker selectedValue={type} onValueChange={(val) => setType(val)}>
+        <Picker.Item label="Electricity" value="electricity" />
+        <Picker.Item label="Gas" value="gas" />
+        <Picker.Item label="Solar" value="solar" />
+      </Picker>
 
-  const handlePressIn = () => {
-    Animated.spring(cardScale, {
-      toValue: 0.98,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(cardScale, {
-      toValue: 1,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handleLongPress = () => {
-    setShowActions(!showActions);
-  };
-
-  return (
-    <Animated.View
-      style={[
-        styles.deviceCard,
-        { transform: [{ scale: cardScale }] },
-        !device.isOn && styles.deviceCardOff
-      ]}
-    >
-      <TouchableOpacity
-        style={styles.cardTouchable}
-        onPress={() => onPress(device)}
-        onLongPress={handleLongPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        activeOpacity={1}
-      >
-        <View style={styles.cardHeader}>
-          <View style={styles.deviceIcon}>
-            <Text style={styles.iconText}>{device.icon}</Text>
-          </View>
-          <View style={styles.deviceInfo}>
-            <Text style={styles.deviceName}>{device.name}</Text>
-            <Text style={styles.deviceLocation}>📍 {device.location}</Text>
-          </View>
-          <View style={styles.cardActions}>
-            <EnergyToggle
-              isOn={device.isOn}
-              onToggle={() => onToggle(device.id)}
-            />
-            <TouchableOpacity
-              style={styles.moreButton}
-              onPress={handleLongPress}
-            >
-              <Text style={styles.moreButtonText}>⋯</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {showActions && (
-          <View style={styles.actionButtons}>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.editButton]}
-              onPress={() => {
-                setShowActions(false);
-                onEdit(device);
-              }}
-            >
-              <Text style={styles.actionButtonIcon}>✏️</Text>
-              <Text style={styles.actionButtonText}>Edit</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.deleteButton]}
-              onPress={() => {
-                setShowActions(false);
-                onDelete(device);
-              }}
-            >
-              <Text style={styles.actionButtonIcon}>🗑️</Text>
-              <Text style={styles.actionButtonText}>Delete</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        <View style={styles.energyStats}>
-          <EnergyIndicator consumption={device.consumption} isOn={device.isOn} />
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Daily</Text>
-              <Text style={styles.statValue}>{device.dailyUsage}h</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Monthly</Text>
-              <Text style={styles.statValue}>${device.monthlyCost}</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Type</Text>
-              <Text style={styles.statValue}>{device.type}</Text>
-            </View>
-          </View>
-        </View>
-
-        {device.isOn && (
-          <View style={styles.activeIndicator}>
-            <Text style={styles.activeText}>● ACTIVE</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-    </Animated.View>
-  );
-};
-
-export default function DeviceListScreen() {
-  const [devices, setDevices] = useState(initialDevices);
-
-  const handleToggle = (deviceId: string) => {
-    setDevices(prevDevices =>
-      prevDevices.map(device =>
-        device.id === deviceId
-          ? { ...device, isOn: !device.isOn }
-          : device
-      )
-    );
-  };
-
-  const handleDevicePress = (device) => {
-    console.log('Navigate to device details:', device.name);
-    // router.push(`/device_details?id=${device.id}`);
-  };
-
-  const handleEdit = (device) => {
-    console.log('Edit device:', device.name);
-    // router.push(`/edit_device?id=${device.id}`);
-    // You can also show a modal or navigate to edit screen
-  };
-
-  const handleDelete = (device) => {
-    // Show confirmation alert before deleting
-    Alert.alert(
-      'Delete Device',
-      `Are you sure you want to delete "${device.name}"?`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            setDevices(prevDevices =>
-              prevDevices.filter(d => d.id !== device.id)
-            );
-            console.log('Deleted device:', device.name);
-          },
-        },
-      ]
-    );
-  };
-
-  const totalActiveDevices = devices.filter(device => device.isOn).length;
-  const totalPowerConsumption = devices
-    .filter(device => device.isOn)
-    .reduce((sum, device) => sum + device.consumption, 0);
-
-  return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>🌱 GreenMeter</Text>
-        <Text style={styles.subtitle}>Smart Energy Management</Text>
-      </View>
-
-      {/* Energy Overview */}
-      <View style={styles.overviewCard}>
-        <View style={styles.overviewRow}>
-          <View style={styles.overviewItem}>
-            <Text style={styles.overviewNumber}>{totalActiveDevices}</Text>
-            <Text style={styles.overviewLabel}>Active Devices</Text>
-          </View>
-          <View style={styles.overviewDivider} />
-          <View style={styles.overviewItem}>
-            <Text style={styles.overviewNumber}>{totalPowerConsumption}W</Text>
-            <Text style={styles.overviewLabel}>Current Usage</Text>
-          </View>
-          <View style={styles.overviewDivider} />
-          <View style={styles.overviewItem}>
-            <Text style={styles.overviewNumber}>⚡</Text>
-            <Text style={styles.overviewLabel}>Clean Energy</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Device List */}
-      <FlatList
-        data={devices}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <DeviceCard
-            device={item}
-            onToggle={handleToggle}
-            onPress={handleDevicePress}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
-        )}
-        contentContainerStyle={styles.listContainer}
-        showsVerticalScrollIndicator={false}
-      />
-    </SafeAreaView>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F0F9F4",
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 20,
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: "800",
-    color: "#16a34a",
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#6B7280",
-    marginTop: 4,
-    textAlign: "center",
-  },
-  overviewCard: {
-    backgroundColor: "#FFFFFF",
-    marginHorizontal: 20,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: "#16a34a",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  overviewRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  overviewItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  overviewNumber: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#16a34a',
-  },
-  overviewLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  overviewDivider: {
-    width: 1,
+      {type === "electricity" && (
+        <>
+          <Text style={styles.label}>Select Device (optional)</Text>
+<DropDownPicker
+  open={open}
+  value={value}
+  items={items}
+  setOpen={setOpen}
+  setValue={setValue}
+  setItems={setItems}
+  placeholder="Select a device"
+  containerStyle={{ 
+    marginBottom: 10, 
     height: 40,
-    backgroundColor: '#E5E7EB',
-  },
-  listContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  deviceCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    marginBottom: 16,
+  }}
+  style={{
+    backgroundColor: "#ffffff",
+    borderColor: "#ccc",
+    borderWidth: 1,
+  }}
+  textStyle={{
+    fontSize: 16,
+    color: "#000000",
+  }}
+  dropDownContainerStyle={{
+    backgroundColor: "#ffffff",
+    borderColor: "#ccc",
+    borderWidth: 1,
+    elevation: 5,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 6,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  deviceCardOff: {
-    backgroundColor: "#F9FAFB",
-    opacity: 0.8,
-  },
-  cardTouchable: {
-    padding: 20,
-    position: 'relative',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  deviceIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F0F9F4',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  iconText: {
-    fontSize: 24,
-  },
-  deviceInfo: {
-    flex: 1,
-  },
-  deviceName: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#1F2937",
-  },
-  deviceLocation: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginTop: 2,
-  },
-  cardActions: {
-    alignItems: 'center',
-  },
-  moreButton: {
-    padding: 8,
-    marginTop: 4,
-  },
-  moreButtonText: {
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  }}
+  listItemContainerStyle={{
+    height: 50,
+    justifyContent: "center",
+    paddingHorizontal: 10,
+    backgroundColor: "#ffffff",
+  }}
+  listItemLabelStyle={{
+    color: "#000000",
     fontSize: 16,
-    color: '#6B7280',
-    fontWeight: 'bold',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 12,
-    marginBottom: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    backgroundColor: '#F9FAFB',
-    marginHorizontal: -20,
-    paddingHorizontal: 20,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    flex: 1,
-    marginHorizontal: 4,
-    justifyContent: 'center',
-  },
-  editButton: {
-    backgroundColor:'#EFF6FF',
-    borderWidth: 1,
-    borderColor: '#3B82F6',
-  },
-  deleteButton: {
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#EF4444',
-  },
-  actionButtonIcon: {
+    fontWeight: "400",
+  }}
+  selectedItemContainerStyle={{
+    backgroundColor: "#e8e8e8",
+  }}
+  selectedItemLabelStyle={{
+    color: "#000000",
+    fontWeight: "bold",
     fontSize: 16,
-    marginRight: 6,
-  },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  toggleContainer: {
-    padding: 4,
-  },
-  toggleDisabled: {
-    opacity: 0.5,
-  },
-  toggleTrack: {
-    width: 44,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-  },
-  toggleThumb: {
+  }}
+  placeholderStyle={{
+    color: "#666666",
+    fontSize: 16,
+  }}
+  arrowIconStyle={{
     width: 20,
     height: 20,
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 3,
+  }}
+  tickIconStyle={{
+    width: 20,
+    height: 20,
+  }}
+  zIndex={5000}
+  zIndexInverse={6000}
+  listMode="SCROLLVIEW"
+  scrollViewProps={{
+    nestedScrollEnabled: true,
+  }}
+/>
+
+
+          <Text style={styles.label}>Watts</Text>
+          <TextInput
+  style={styles.input}
+  keyboardType="numeric"
+  value={watts}
+  onChangeText={setWatts}
+  editable={!value} // disable typing if a device selected
+/>
+
+
+          <Text style={styles.label}>Hours per Day</Text>
+          <TextInput style={styles.input} keyboardType="numeric" value={hoursPerDay} onChangeText={setHoursPerDay} />
+        </>
+      )}
+
+      {type === "gas" && (
+        <>
+          <Text style={styles.label}>Fuel Type</Text>
+          <Picker selectedValue={fuelType} onValueChange={(val) => setFuelType(val)}>
+            <Picker.Item label="Petrol" value="petrol" />
+            <Picker.Item label="Diesel" value="diesel" />
+            <Picker.Item label="Kerosene" value="kerosene" />
+            <Picker.Item label="LPG" value="lpg" />
+          </Picker>
+          <Text style={styles.label}>Liters</Text>
+          <TextInput style={styles.input} keyboardType="numeric" value={liters} onChangeText={setLiters} />
+          {fuelType === "lpg" && (
+            <>
+              <Text style={styles.label}>Tank Size</Text>
+              <Picker selectedValue={tankSize} onValueChange={(val) => setTankSize(val)}>
+                <Picker.Item label="12.5kg" value="12.5kg" />
+                <Picker.Item label="5kg" value="5kg" />
+                <Picker.Item label="2.5kg" value="2.5kg" />
+              </Picker>
+            </>
+          )}
+        </>
+      )}
+
+      {type === "solar" && (
+        <>
+          <Text style={styles.label}>Solar Savings</Text>
+          <TextInput style={styles.input} keyboardType="numeric" value={solarSavings} onChangeText={setSolarSavings} />
+        </>
+      )}
+
+      <Button title={loading ? "Submitting..." : "Submit"} onPress={handleSubmit} disabled={loading} />
+    </KeyboardAwareScrollView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { padding: 20 ,marginTop:200},
+  label: { marginTop: 15, fontWeight: "bold", color: "#333" },
+  input: {
+    borderWidth: 1, borderColor: "#ccc", padding: 10, marginTop: 5,
+    borderRadius: 5, color: "#000", backgroundColor: "#fff"
   },
-  energyStats: {
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-    paddingTop: 16,
-  },
-  energyIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  energyDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 8,
-  },
-  energyText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    textTransform: 'uppercase',
-    fontWeight: '600',
-  },
-  statValue: {
-    fontSize: 14,
-    color: '#374151',
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  activeIndicator: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-  },
-  activeText: {
-    fontSize: 10,
-    color: '#16a34a',
-    fontWeight: '700',
-  },
+  picker: {
+    color: "#000", backgroundColor: "#fff", marginTop: 5,
+    borderWidth: 1, borderColor: "#ccc", borderRadius: 5
+  }
 });
+
+export default EnergyForm;

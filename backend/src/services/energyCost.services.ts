@@ -1,4 +1,4 @@
-import EnergyCost, { IEnergyCost } from '../models/energyCost.model';
+/*import EnergyCost, { IEnergyCost } from '../models/energyCost.model';
 
 // Price tables
 const fuelPrices = {
@@ -108,3 +108,4 @@ export const getCostSummary = async () => {
     { $sort: { type: 1 } }
   ]);
 };
+*/

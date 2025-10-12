@@ -9,6 +9,7 @@ import goalRoutes from './routes/goal.routes';
 
 
 
+
 const app = express();
 
 // Middleware
@@ -18,7 +19,8 @@ app.use(express.json());
 
 // Routes
 app.use('/api/consumptions', consumptionRoutes)
-app.use('/api', deviceRoutes)
+app.use('/api', deviceRoutes);
+app.use('/api/costs', energyCostRoutes);
 app.use('/api/goals', goalRoutes);
 
 app.get('/health', (req: Request, res: Response) => {
