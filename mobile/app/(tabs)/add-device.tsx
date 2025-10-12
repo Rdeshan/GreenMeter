@@ -13,15 +13,12 @@ import EditDeviceModal from "@/components/device_management/display_home/Edit_Mo
 import  SearchBar  from "@/components/device_management/display_home/SearchBar";
 import FloatingButton from "@/components/device_management/display_home/type/FloatingButton";
 import BottomSheet from "@/components/device_management/display_home/BottomSheet";
+import { API_BASE } from '../../constants/index'
 import ManualAddScreen from "../manual_add";
 
 const { width: screenWidth } = Dimensions.get("window");
 
-const API_BASE = (() => {
-  const defaultHost = "192.168.8.194"; // replace with your PC IP when testing on device
-  if (Platform?.OS === "android") return `http://10.0.2.2:5000/api`;
-  return `http://${defaultHost}:5000/api`;
-})();
+
 
 export default function HomeScreen() {
   const [devices, setDevices] = useState<DeviceItem[]>([]);

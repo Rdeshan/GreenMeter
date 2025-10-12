@@ -15,6 +15,7 @@ import ConsumptionRecordsList from '@/components/consumptions/ConsumptionRecords
 import AddConsumptionModal from '@/components/consumptions/AddConsumptionModal'
 import FloatingAddButton from '@/components/consumptions/FloatingAddButton'
 import axios from 'axios'
+import { API_BASE } from '../../constants/index'
 
 interface DeviceItemResponse {
   //  mapped shapee of the data from get response
@@ -65,11 +66,7 @@ type ConsumptionInput = {
   minutes: number
 }
 
-const API_BASE = (() => {
-  const defaultHost = "192.168.8.194"; // replace with your PC IP when testing on device
-  if (Platform?.OS === "android") return `http://10.0.2.2:5000/api`;
-  return `http://${defaultHost}:5000/api`;
-})();
+
 
 export default function Consumptions () {
   // Local state

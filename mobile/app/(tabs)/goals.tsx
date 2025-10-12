@@ -9,6 +9,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import AiGenerate from '../../../backend/src/config/geminiGoals.config';
 import GenerateGoalScreen from '../../components/goals/GenerateGoalScreen';
 import { StatusSlider } from '../../components/goals/StatusSlider';
+import { API_BASE} from '../../constants/index'
 
 const BASE_URL = 'http://192.168.8.194:5000/api/goals'; // replace with PC's LAN IP
 
