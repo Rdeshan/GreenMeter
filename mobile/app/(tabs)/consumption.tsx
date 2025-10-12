@@ -5,7 +5,8 @@ import {
   ScrollView,
   View,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  Text
 } from 'react-native'
 import { Platform } from 'react-native'
 import { ThemedText } from '@/components/ThemedText'
@@ -16,6 +17,7 @@ import AddConsumptionModal from '@/components/consumptions/AddConsumptionModal'
 import FloatingAddButton from '@/components/consumptions/FloatingAddButton'
 import axios from 'axios'
 import { API_BASE } from '../../constants/index'
+import { useAuthStore } from '../../store/authStore'
 
 interface DeviceItemResponse {
   //  mapped shapee of the data from get response
@@ -66,9 +68,8 @@ type ConsumptionInput = {
   minutes: number
 }
 
-
-
 export default function Consumptions () {
+  const user = useAuthStore(state => state.user)
   // Local state
   const [devices, setDevices] = useState<DeviceItemResponse[]>([])
   const [loading, setLoading] = useState(false)
@@ -85,7 +86,12 @@ export default function Consumptions () {
     setLoading(true)
     try {
       const res = await axios.get<DevicesApiResponse>(
-        `${API_BASE}/get-all-devices`
+        `${API_BASE}/get-all-devices`,
+        // {
+        //   headers: {
+        //     Authorization: `Bearer ${user?.token}` // 🟢 Attach token here
+        //   }
+        // }
       )
       const deviceList: DeviceItemResponse[] = res.data?.devices || []
       setDevices(deviceList)
@@ -104,12 +110,16 @@ export default function Consumptions () {
     setLoading(true)
     try {
       const res = await axios.get<ConsumptionsApiResponse>(
-        `${API_BASE}/consumptions`
+        `${API_BASE}/consumptions/`,
+        // {
+        //   headers: {
+        //     Authorization: `Bearer ${user?.token}` // 🟢 Attach token here
+        //   }
+        // }
       )
       const consumptionsList: ConsumptionItemResponse[] = res.data?.data || []
 
       setConsumptionRecords(consumptionsList)
-      console.log(consumptionsList)
     } catch (err) {
       console.log('Fetch consumptions error', err)
       Alert.alert(
@@ -127,11 +137,20 @@ export default function Consumptions () {
     minutes
   }: ConsumptionInput) => {
     try {
-      const res = await axios.post(`${API_BASE}/consumptions`, {
-        deviceId,
-        hours,
-        minutes
-      })
+      const res = await axios.post(
+        `${API_BASE}/consumptions`,
+        {
+          deviceId,
+          hours,
+          minutes
+        },
+        // {
+        //   headers: {
+        //     Authorization: `Bearer ${user?.token}`
+        //   }
+        // }
+      )
+
       return res.data // contains { success, data }
     } catch (err) {
       console.error('Add consumption error', err)
@@ -140,21 +159,46 @@ export default function Consumptions () {
     }
   }
 
-  const updateConsumptionRecord = async (recordId : string, {
-    deviceId,
-    hours,
-    minutes
-  }: ConsumptionInput) => {
+  const updateConsumptionRecord = async (
+    recordId: string,
+    { deviceId, hours, minutes }: ConsumptionInput
+  ) => {
     try {
-      const res = await axios.put(`${API_BASE}/consumptions/${recordId}`, {
-        deviceId,
-        hours,
-        minutes
-      })
+      const res = await axios.put(
+        `${API_BASE}/consumptions/${recordId}`,
+        {
+          deviceId,
+          hours,
+          minutes
+        },
+        // {
+        //   headers: {
+        //     Authorization: `Bearer ${user?.token}`
+        //   }
+        // }
+      )
       return res.data // contains { success, data }
     } catch (err) {
       console.error('Add consumption error', err)
       Alert.alert('Error', 'Could not add consumption. Check backend/CORS/IP.')
+      throw err
+    }
+  }
+
+  const deleteConsumptionRecord = async (recordId: string) => {
+    try {
+      const res = await axios.delete(
+        `${API_BASE}/consumptions/${recordId}`,
+        // {
+        //   headers: {
+        //     Authorization: `Bearer ${user?.token}`
+        //   }
+        // }
+      )
+      return res.data
+    } catch (err) {
+      console.error('Delete consumption error', err)
+      Alert.alert('Error', 'Could not Delete consumption.')
       throw err
     }
   }
@@ -171,16 +215,19 @@ export default function Consumptions () {
     minutes?: number
   }) => {
     try {
+      setIsAddingRecord(false)
+      setLoading(true)
       await addConsumptionRecord({
         deviceId: newRecord.deviceId,
         hours: newRecord.hours || 0,
         minutes: newRecord.minutes || 0
       })
       await fetchConsumptions()
-      setIsAddingRecord(false)
+      setLoading(false)
       Alert.alert('Success', 'Energy record added successfully!')
     } catch (error) {
       console.error('Failed to add record:', error)
+      setLoading(false)
       Alert.alert('Error', 'Failed to add energy record. Please try again.')
     }
   }
@@ -198,6 +245,8 @@ export default function Consumptions () {
     minutes?: number
   }) => {
     try {
+      setIsAddingRecord(false)
+      setLoading(true)
       const recordId = editingRecord?.id
       if (!recordId) {
         throw new Error('Record ID not found')
@@ -213,42 +262,47 @@ export default function Consumptions () {
 
       await fetchConsumptions()
       setIsAddingRecord(false)
+      setLoading(false)
       Alert.alert('Success', 'Energy record updated successfully!')
     } catch (error) {
       console.error('Failed to update record:', error)
+      setLoading(false)
       Alert.alert('Error', 'Failed to update energy record. Please try again.')
     }
   }
 
   // Handle deleting record
   const handleDeleteRecord = async (recordId: string) => {
-    //   Alert.alert(
-    //     'Delete Record',
-    //     'Are you sure you want to delete this energy record?',
-    //     [
-    //       { text: 'Cancel', style: 'cancel' },
-    //       {
-    //         text: 'Delete',
-    //         style: 'destructive',
-    //         onPress: async () => {
-    //           try {
-    //             const recordId = record._id
-    //             if (!recordId) {
-    //               throw new Error('Record ID not found')
-    //             }
-    //             await deleteConsumptionRecord(recordId)
-    //             Alert.alert('Success', 'Energy record deleted successfully!')
-    //           } catch (error) {
-    //             console.error('Failed to delete record:', error)
-    //             Alert.alert(
-    //               'Error',
-    //               'Failed to delete energy record. Please try again.'
-    //             )
-    //           }
-    //         }
-    //       }
-    //     ]
-    // )
+    Alert.alert(
+      'Delete Record',
+      'Are you sure you want to delete this energy record?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true)
+              if (!recordId) {
+                throw new Error('Record ID not found')
+              }
+              await deleteConsumptionRecord(recordId)
+              await fetchConsumptions()
+              setLoading(false)
+              Alert.alert('Success', 'Energy record deleted successfully!')
+            } catch (error) {
+              console.error('Failed to delete record:', error)
+              setLoading(false)
+              Alert.alert(
+                'Error',
+                'Failed to delete energy record. Please try again.'
+              )
+            }
+          }
+        }
+      ]
+    )
   }
 
   // Handle modal cancel
@@ -349,7 +403,7 @@ export default function Consumptions () {
                 id: editingRecord.id,
                 deviceId: editingRecord.deviceId,
                 hours: editingRecord.hours,
-                minutes: editingRecord.minutes,
+                minutes: editingRecord.minutes
               }
             : null
         }

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useAuthStore } from '../../store/authStore';
 import {View,  Text,  TouchableOpacity,  StyleSheet,  FlatList,  SafeAreaView,  Animated,  Dimensions,  Alert,  Modal,TextInput,ActivityIndicator,
   Platform,
 } from "react-native";
@@ -13,6 +14,7 @@ import { DeviceItem } from "@/components/device_management/display_home/type/Dev
 import EditDeviceModal from "@/components/device_management/display_home/Edit_Modal"
 import  SearchBar  from "@/components/device_management/display_home/SearchBar";
 import { API_BASE } from '../../constants/index'
+import { useRouter } from "expo-router";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -25,6 +27,7 @@ export default function HomeScreen() {
   const [editing, setEditing] = useState<DeviceItem | null>(null);
   const [saving, setSaving] = useState(false);
 
+ 
   useFocusEffect(
     useCallback(() => {
       fetchDevices();

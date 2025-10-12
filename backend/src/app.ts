@@ -18,6 +18,7 @@ app.use(helmet());
 app.use(express.json());
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/consumptions', consumptionRoutes)
 app.use('/api', deviceRoutes);
 app.use('/api/costs', energyCostRoutes);

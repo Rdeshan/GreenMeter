@@ -70,6 +70,9 @@ export default function ConsumptionRecordCard({ record, device, onEdit, onDelete
                     <ThemedText style={styles.statusText}>
                         Units burned {(record.energyConsumed/1000).toFixed(2)}
                     </ThemedText>
+                    <ThemedText style={styles.statusText}>
+                        Created At {record.timestamp.toLocaleString()}
+                    </ThemedText>
                 </ThemedView>
                 <ThemedView style={styles.recordActions}>
                     <TouchableOpacity

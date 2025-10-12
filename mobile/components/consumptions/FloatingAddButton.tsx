@@ -21,11 +21,11 @@ export default function FloatingAddButton({ onPress }: FloatingAddButtonProps) {
 const styles = StyleSheet.create({
     floatingButton: {
         position: 'absolute',
-        bottom: 20,
+        bottom: 100,
         right: 20,
         width: 56,
         height: 56,
-        backgroundColor: '#6366F1',
+        backgroundColor: '#37cc70ff',
         borderRadius: 28,
         alignItems: 'center',
         justifyContent: 'center',

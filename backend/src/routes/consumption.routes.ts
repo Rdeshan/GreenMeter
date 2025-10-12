@@ -1,6 +1,7 @@
 // routes/consumption.routes.js
 import express from 'express';
-import * as consumptionController from '../controllers/consumption.controller.js';
+import * as consumptionController from '../controllers/consumption.controller';
+// import { auth } from '../middlewares/auth';
 
 const router = express.Router();
 
@@ -19,4 +20,4 @@ router.put('/:id', consumptionController.editConsumptionController);
 // Delete consumption
 router.delete('/:id', consumptionController.deleteConsumptionController);
 
-export default router;
+export default router;

@@ -33,7 +33,7 @@ export default function StatsContainer({ consumptionRecords, devices }: StatsCon
     };
 
     const calculateCost = (): string => {
-        const totalKwh = parseFloat(calculateTotalConsumption());
+        const totalKwh = parseFloat(calculateTotalConsumption()) / 1000;
         const costPerKwh = 30;
         return (totalKwh * costPerKwh).toFixed(2);
     };
@@ -44,9 +44,9 @@ export default function StatsContainer({ consumptionRecords, devices }: StatsCon
             <ThemedView style={styles.statsContainer}>
                 <ThemedView style={styles.statCard}>
                     <ThemedText type="defaultSemiBold" style={styles.statNumber}>
-                        {calculateTotalConsumption()} kWh
+                        {calculateTotalConsumption()} Wh
                     </ThemedText>
-                    <ThemedText style={styles.statLabel}>Total Today</ThemedText>
+                    <ThemedText style={styles.statLabel}>Total Consumption</ThemedText>
                 </ThemedView>
                 <ThemedView style={styles.statCard}>
                     <ThemedText type="defaultSemiBold" style={styles.statNumber}>
@@ -70,7 +70,7 @@ export default function StatsContainer({ consumptionRecords, devices }: StatsCon
                     <ThemedText type="defaultSemiBold" style={styles.bottomStatNumber}>
                         {consumptionRecords.length}
                     </ThemedText>
-                    <ThemedText style={styles.bottomStatLabel}>Records Today</ThemedText>
+                    <ThemedText style={styles.bottomStatLabel}>Total Records</ThemedText>
                 </ThemedView>
                 <ThemedView style={styles.bottomStatCard}>
                     <ThemedText type="defaultSemiBold" style={styles.bottomStatNumber}>

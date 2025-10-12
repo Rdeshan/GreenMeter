@@ -1,32 +1,55 @@
-import { Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
-import User from '../models/user.model';
+import { Request, Response } from 'express'
+import bcrypt from 'bcryptjs'
+import jwt from 'jsonwebtoken'
+import User from '../models/User'
 
-export const googleAuth = async (req: Request, res: Response) => {
+export const registerUser = async (req: Request, res: Response) => {
+  console.log("registerUser")
   try {
-    const { access_token } = req.body;
+    const { email, password, name } = req.body
 
-    // Verify Google token & get user info
-    const googleRes = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${access_token}`);
-    const profile = await googleRes.json();
-
-    if (!profile.email) return res.status(400).json({ error: 'Invalid Google token' });
-
-    // Find or create user
-    let user = await User.findOne({ email: profile.email });
-    if (!user) {
-      user = await User.create({
-        name: profile.name,
-        email: profile.email,
-        provider: 'google',
-        providerId: profile.sub,
-      });
+    const existingUser = await User.findOne({ email })
+    if (existingUser) {
+      return res.status(400).json({ message: 'User already exists' })
     }
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET as string, { expiresIn: '7d' });
-    res.json({ token, user });
+    const hashedPassword = await bcrypt.hash(password, 10)
+
+    const user = await User.create({
+      email,
+      password: hashedPassword,
+      name
+    })
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, {
+      expiresIn: '1d'
+    })
+
+    res.status(201).json({ user, token })
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    console.error(err)
+    res.status(500).json({ message: 'Server error' })
   }
-};
+}
+
+export const loginUser = async (req: Request, res: Response) => {
+  console.log("loginUser")
+  try {
+    const { email, password } = req.body
+
+    const user = await User.findOne({ email })
+    if (!user) return res.status(400).json({ message: 'User not found' })
+
+    const isMatch = await bcrypt.compare(password, user.password!)
+    if (!isMatch) return res.status(400).json({ message: 'Invalid password' })
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, {
+      expiresIn: '1d'
+    })
+
+    res.json({ user, token })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: 'Server error' })
+  }
+}
