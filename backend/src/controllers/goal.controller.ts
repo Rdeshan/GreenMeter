@@ -3,7 +3,7 @@ import { Request, Response } from 'express';
 import Goal, { IGoal } from '../models/Goal.model';
 import { Types } from 'mongoose';
 import Device, { IDevice } from '../models/Device';
-import AiGenerate from '../config/gemini.config';
+import AiGenerate from '../config/geminiGoals.config';
 
 const DUMMY_USER_ID = '64f0a1b2c3d4e5f678901234'; // any valid ObjectId string
 

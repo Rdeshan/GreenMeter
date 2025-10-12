@@ -6,7 +6,7 @@ import { ThemedText } from '../../components/ThemedText';
 import { Goal } from '../../components/goals/types/goal';
 import MorphingAddGoal from '../../components/goals/MorphingAddGoal';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import AiGenerate from '../../../backend/src/config/gemini.config';
+import AiGenerate from '../../../backend/src/config/geminiGoals.config';
 import GenerateGoalScreen from '../../components/goals/GenerateGoalScreen';
 import { StatusSlider } from '../../components/goals/StatusSlider';
 

@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import dotenv from 'dotenv'
-import * as constants from '../constants/index'; 
+import * as constants from '../constants/indexGoals'; 
 
 dotenv.config()
 
