@@ -18,7 +18,7 @@ import ManualAddScreen from "../manual_add";
 const { width: screenWidth } = Dimensions.get("window");
 
 const API_BASE = (() => {
-  const defaultHost = "172.28.9.228"; // replace with your PC IP when testing on device
+  const defaultHost = "192.168.8.194"; // replace with your PC IP when testing on device
   if (Platform?.OS === "android") return `http://10.0.2.2:5000/api`;
   return `http://${defaultHost}:5000/api`;
 })();

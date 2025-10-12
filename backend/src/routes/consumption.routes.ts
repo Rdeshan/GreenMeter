@@ -19,4 +19,4 @@ router.put('/:id', consumptionController.editConsumptionController);
 // Delete consumption
 router.delete('/:id', consumptionController.deleteConsumptionController);
 
-export default router;
+export default router;
