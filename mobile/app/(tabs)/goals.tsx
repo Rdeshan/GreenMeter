@@ -6,53 +6,11 @@ import { ThemedText } from '../../components/ThemedText';
 import { Goal } from '../../components/goals/types/goal';
 import MorphingAddGoal from '../../components/goals/MorphingAddGoal';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import messaging from '@react-native-firebase/messaging';
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
-import { initializeApp } from 'firebase/app';
+import AiGenerate from '../../../backend/src/config/gemini.config';
+import GenerateGoalScreen from '../../components/goals/GenerateGoalScreen';
+import { StatusSlider } from '../../components/goals/StatusSlider';
 
 const BASE_URL = 'http://192.168.8.111:5000/api/goals'; // replace with PC's LAN IP
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "your-app.firebaseapp.com",
-  projectId: "greenmeter-goal-notifications",   // <-- REQUIRED
-  storageBucket: "your-app.appspot.com",
-  messagingSenderId: "SENDER_ID",
-  appId: "APP_ID",
-};
-
-const app = initializeApp(firebaseConfig);
-
-async function registerForNotifications() {
-  if (!Device.isDevice) {
-    Alert.alert('Error', 'Push notifications only work on a real device!');
-    return;
-  }
-
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-
-  if (finalStatus !== 'granted') {
-    Alert.alert('Failed', 'Permission not granted for notifications.');
-    return;
-  }
-
-  const token = (await Notifications.getExpoPushTokenAsync()).data;
-  console.log('Expo Push Token:', token);
-  Alert.alert('Expo Push Token', token);
-}
-
-
-// Call it inside useEffect
-useEffect(() => {
-  registerForNotifications();
-}, []);
-
 
 export default function GoalsIndex() {
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -63,7 +21,6 @@ export default function GoalsIndex() {
   const [newTitle, setNewTitle] = useState('');
   const [allDevices, setAllDevices] = useState<{_id: string, device_name: string}[]>([]);
   const [statusFilter, setStatusFilter] = useState<'Active' | 'Completed' | 'Archived'>('Active');
-
 
   // Fetch goals
   useEffect(() => {
@@ -95,7 +52,6 @@ useEffect(() => {
   fetchDevices();
 }, []);
 
-
   // Add goal
   const handleAddGoal = async (goal: Goal) => {
     try {
@@ -124,6 +80,12 @@ const [editDate, setEditDate] = useState<Date>(new Date());
 const [editTime, setEditTime] = useState<Date>(new Date());
 const [showEditDatePicker, setShowEditDatePicker] = useState(false);
 const [showEditTimePicker, setShowEditTimePicker] = useState(false);
+
+const [generateModalVisible, setGenerateModalVisible] = useState(false);
+
+const openGenerateGoalScreen = () => setGenerateModalVisible(true);
+const closeGenerateGoalScreen = () => setGenerateModalVisible(false);
+
 
 // Open modal and populate fields
 const openEditModal = (goal: Goal) => {
@@ -235,6 +197,11 @@ const saveEdit = async () => {
   return (
     <ThemedView style={styles.container}>
       <ThemedText type="title">Goals</ThemedText>
+      <Button title="Generate AI Goal" onPress={openGenerateGoalScreen} />
+     <Modal visible={generateModalVisible} animationType="slide">
+  <GenerateGoalScreen onClose={closeGenerateGoalScreen} onAddGoal={handleAddGoal} />
+</Modal>
+
       <View style={styles.filterRow}>
   {(['Active','Completed','Archived'] as const).map(s => (
     <TouchableOpacity
@@ -271,7 +238,13 @@ const saveEdit = async () => {
                   <Text style={styles.metaText}>⌛ {item.time}</Text>
                   <Text style={styles.metaText}>🔁 {item.timeFrequency}</Text>
                 </View>
-                
+                <StatusSlider
+                  status={item.status === 'Completed' ? 'Completed' : 'Active'}
+                  onChange={(newStatus) => {
+                    changeStatus(item, newStatus);
+                    Alert.alert('Status Updated', `Goal marked as ${newStatus}`);
+                  }} 
+                />
 
                 {/* Devices */}
                 {item.devices?.length > 0 && (
@@ -426,7 +399,12 @@ selectedStatusButton: { backgroundColor: '#2d6a4f' },
   deviceText: { fontSize: 12, color: '#333' },
   goalButtons: { flexDirection: 'row', gap: 12 },
 
-  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
+modalOverlay: {
+  flex: 1,
+  backgroundColor: 'rgba(0,0,0,0.5)',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
   modalBox: { width: '80%', backgroundColor: 'white', borderRadius: 12, padding: 20, elevation: 10 },
   modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
   modalInput: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 8, marginBottom: 16 },

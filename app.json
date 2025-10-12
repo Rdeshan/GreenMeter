@@ -1,5 +1,10 @@
 {
   "android": {
     "package": "com.anonymous.greenmeter"
+  },
+  "extra": {
+    "eas": {
+      "projectId": "0220dbe4-4b13-4a73-b55c-775f3c54baa9"
+    }
   }
 }
